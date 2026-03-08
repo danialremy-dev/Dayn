@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LIFEFLOW – Your Life, All in One Place</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#9caf88" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="logo.png?v=2" />
+    <link rel="stylesheet" href="style.css?v=6" />
+  </head>
+  <body>
+    <div id="saved-toast" class="saved-toast" aria-live="polite">SAVED!</div>
+    <div id="save-error-banner" class="save-error-banner" role="alert" onclick="this.classList.remove('show')"></div>
+
+    <header class="top-nav">
+      <a href="#" class="nav-logo" data-tab="dashboard">LIFEFLOW</a>
+      <nav class="nav-menu" aria-label="Main navigation">
+        <a href="#" class="nav-link active" data-tab="dashboard">HOME</a>
+        <a href="#" class="nav-link" data-tab="habits">HABIT TRACKER</a>
+        <a href="#" class="nav-link" data-tab="finance">FINANCIAL &amp; DEBT</a>
+        <a href="#" class="nav-link" data-tab="appointments">APPOINTMENTS</a>
+        <a href="#" class="nav-link" data-tab="people">PEOPLE</a>
+        <a href="#" class="nav-link" data-tab="profile">PROFILE</a>
+      </nav>
+      <div class="nav-search-wrap">
+        <input type="search" class="nav-search" placeholder="Search..." aria-label="Search" />
+      </div>
+    </header>
+
+    <main class="main-wrap">
+      <section class="tab-panel active" id="tab-dashboard">
+        <div class="hero">
+          <h1 class="hero-headline">YOUR LIFE, ALL IN ONE PLACE.</h1>
+        </div>
+        <div class="subtle-stats-bar" id="subtle-stats-dashboard" role="region" aria-label="Debt summary">
+          <span class="subtle-stats-text" id="subtle-stats-dashboard-text">Total Debt: — | Goal: —</span>
+          <div class="subtle-stats-chart" id="subtle-stats-dashboard-chart" aria-hidden="true"></div>
+        </div>
+        <div class="dashboard-cards">
+          <article class="gui-card gui-card-habits">
+            <div class="gui-card-header">HABIT TRACKER</div>
+            <div class="gui-card-body">
+              <ul class="habit-checklist" id="dashboard-habits-list"></ul>
+              <div class="card-decoration card-floral" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 60c-5 0-10-3-14-8 2-2 5-4 8-4 4 0 7 2 10 5-3 3-6 7-4 7zm0-20c-8 0-15-7-15-15 0-4 2-8 5-11 3 3 5 7 5 11 0 8-7 15-15 15zm8-8c0-4-2-8-5-11 3-3 7-5 11-5 8 0 15 7 15 15 0 4-2 8-5 11-3-3-7-5-11-5-4 0-7 2-9 5z" fill="currentColor" opacity="0.2"/><circle cx="40" cy="35" r="6" fill="currentColor" opacity="0.15"/></svg>
+              </div>
+            </div>
+          </article>
+
+          <article class="gui-card gui-card-finance">
+            <div class="gui-card-header">FINANCIAL &amp; DEBT MANAGEMENT</div>
+            <div class="gui-card-body">
+              <p class="finance-total" id="dashboard-total-debt">Total Debt: <strong>$0</strong></p>
+              <div class="finance-progress-wrap">
+                <p class="finance-row">Debt Payoff: <span id="dashboard-debt-payoff">$0 / $0 monthly target</span></p>
+                <div class="progress-bar"><span class="progress-fill" id="dashboard-debt-progress" style="width: 0%"></span></div>
+              </div>
+              <div class="finance-block">
+                <p class="finance-block-title">SAVINGS GOALS</p>
+                <ul class="goals-preview-list" id="dashboard-goals-list"></ul>
+                <button type="button" class="gui-btn gui-btn-outline" data-tab="finance">ADD NEW GOAL</button>
+              </div>
+              <div class="finance-block">
+                <p class="finance-block-title">TOTAL DEBTS</p>
+                <ul class="debt-list" id="dashboard-debts-list"></ul>
+                <button type="button" class="gui-btn gui-btn-outline" data-tab="finance">ADD NEW DEBT</button>
+              </div>
+              <div class="card-decoration card-money" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+          </article>
+
+          <article class="gui-card gui-card-appointments">
+            <div class="gui-card-header">APPOINTMENTS</div>
+            <div class="gui-card-body">
+              <ul class="appointments-preview" id="dashboard-appointments-preview"></ul>
+            </div>
+          </article>
+          <article class="gui-card gui-card-people">
+            <div class="gui-card-header">PEOPLE</div>
+            <div class="gui-card-body">
+              <ul class="people-preview-list" id="dashboard-people-list"></ul>
+              <button type="button" class="gui-btn gui-btn-outline" data-tab="people">ADD PERSON</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-habits">
+        <div class="section-inner daily-snapshot-wrap">
+          <h2 class="page-title">Daily Snapshot</h2>
+          <div class="subtle-stats-bar" id="subtle-stats-daily" role="region" aria-label="Debt summary">
+            <span class="subtle-stats-text" id="subtle-stats-daily-text">Total Debt: — | Goal: —</span>
+            <div class="subtle-stats-chart" id="subtle-stats-daily-chart" aria-hidden="true"></div>
+          </div>
+          <p class="snapshot-north-star" id="snapshot-north-star">You are 0% through your daily goals.</p>
+
+          <div class="snapshot-grid">
+            <div class="snapshot-card snapshot-energy">
+              <div class="snapshot-card-header">ENERGY &amp; FOCUS</div>
+              <div class="snapshot-card-body">
+                <div class="energy-slider-wrap">
+                  <span class="energy-label">1</span>
+                  <input type="range" id="snapshot-energy-slider" class="energy-slider" min="1" max="5" value="3" />
+                  <span class="energy-label">5</span>
+                </div>
+                <p class="energy-value" id="snapshot-energy-value">3</p>
+                <div class="energy-trend-wrap">
+                  <span class="energy-trend-label">Last 7 days</span>
+                  <div class="energy-trend-chart" id="snapshot-energy-trend" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+            <div class="snapshot-card snapshot-deepwork">
+              <div class="snapshot-card-header">DEEP WORK</div>
+              <div class="snapshot-card-body">
+                <div class="deepwork-ring-wrap">
+                  <div class="deepwork-ring" id="snapshot-deepwork-ring">
+                    <svg viewBox="0 0 36 36" aria-hidden="true">
+                      <path class="deepwork-ring-bg" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
+                      <path class="deepwork-ring-fill" id="snapshot-deepwork-ring-fill" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
+                    </svg>
+                  </div>
+                  <div class="deepwork-values">
+                    <span class="deepwork-current" id="snapshot-deepwork-current">0</span>
+                    <span class="deepwork-sep">/</span>
+                    <span class="deepwork-target" id="snapshot-deepwork-target">2</span>
+                    <span class="deepwork-unit">hrs</span>
+                  </div>
+                </div>
+                <label class="snapshot-input-label">Hours today <input type="number" id="snapshot-deepwork-input" class="snapshot-input-num" min="0" max="24" step="0.5" placeholder="0" /></label>
+                <label class="snapshot-input-label snapshot-target-label">Target (hrs) <input type="number" id="snapshot-deepwork-target" class="snapshot-input-num" min="0.5" max="12" step="0.5" value="2" /></label>
+              </div>
+            </div>
+            <div class="snapshot-card snapshot-insight">
+              <div class="snapshot-card-header">DAILY INSIGHTS</div>
+              <div class="snapshot-card-body">
+                <label class="snapshot-input-label">What did you learn today?</label>
+                <textarea id="snapshot-insight-input" class="snapshot-insight-textarea" rows="3" placeholder="e.g. Learned how to structure a nested dictionary in Python"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="snapshot-card snapshot-momentum">
+            <div class="snapshot-card-header">HABIT MOMENTUM</div>
+            <div class="snapshot-card-body">
+              <div class="momentum-bar-wrap" id="snapshot-momentum-bar"></div>
+              <p class="momentum-legend" id="snapshot-momentum-legend"></p>
+            </div>
+          </div>
+
+          <div class="habits-header-row">
+            <button type="button" class="gui-btn" id="add-habit-btn">+ ADD HABIT</button>
+          </div>
+          <div id="habits-cards-list" class="habits-cards-list"></div>
+          <div id="habit-form-panel" class="habit-form-panel hidden">
+            <div class="gui-card">
+              <div class="gui-card-header">ADD / EDIT HABIT</div>
+              <div class="gui-card-body">
+                <p class="habit-types-label">CHOOSE A HABIT TYPE:</p>
+                <div class="habit-types-grid" id="habit-types-grid"></div>
+                <form id="habit-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+                  <input type="hidden" id="habit-id" />
+                  <label>Name <input type="text" id="habit-name" required placeholder="e.g. Meditation" /></label>
+                  <label>Description <input type="text" id="habit-description" placeholder="e.g. Meditate daily for 15 minutes" /></label>
+                  <label>Goal (times per week) <input type="number" id="habit-goal" min="1" max="7" value="5" /></label>
+                  <div class="habit-form-actions">
+                    <button type="submit" class="gui-btn">SAVE</button>
+                    <button type="button" class="gui-btn gui-btn-outline" id="cancel-habit-btn">CANCEL</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-finance">
+        <div class="section-inner">
+          <h2 class="page-title">Financial &amp; Debt</h2>
+          <div id="finance-people-boundary-banner" class="people-boundary-banner hidden" role="alert"></div>
+          <div id="finance-debt-due-banner" class="people-boundary-banner debt-due-banner hidden" role="alert"></div>
+          <div class="grid-2">
+            <div class="gui-card">
+              <div class="gui-card-header">Savings Goals</div>
+              <div class="gui-card-body">
+                <form id="goal-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+                  <input type="hidden" id="goal-id" />
+                  <label>Name <input type="text" id="goal-name" required placeholder="Emergency fund" /></label>
+                  <label>Target amount <input type="number" id="goal-target" min="0" step="0.01" required /></label>
+                  <label>Current amount <input type="number" id="goal-current" min="0" step="0.01" required /></label>
+                  <button type="submit" class="gui-btn">SAVE GOAL</button>
+                </form>
+                <div id="goals-circles" class="goals-circles"></div>
+              </div>
+            </div>
+            <div class="gui-card">
+              <div class="gui-card-header">Debts</div>
+              <div class="gui-card-body">
+                <form id="debt-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+                  <input type="hidden" id="debt-id" />
+                  <label>Name <input type="text" id="debt-name" required placeholder="Credit card" /></label>
+                  <label>Total owed <input type="number" id="debt-total" min="0" step="0.01" required /></label>
+                  <label>Remaining <input type="number" id="debt-remaining" min="0" step="0.01" required /></label>
+                  <label>DUE DATE <span class="add-to-circle-optional">(OPTIONAL)</span> <input type="date" id="debt-due-date" /></label>
+                  <button type="submit" class="gui-btn">SAVE DEBT</button>
+                </form>
+                <ul id="debts-list" class="debt-list-full"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-appointments">
+        <div class="section-inner">
+          <h2 class="page-title">Appointments</h2>
+          <div class="layout-split">
+            <div class="gui-card">
+              <div class="gui-card-header">ADD APPOINTMENT</div>
+              <div class="gui-card-body">
+                <form id="appointment-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+                  <input type="hidden" id="appointment-id" />
+                  <label>Title <input type="text" id="appointment-title" required placeholder="Dentist visit" /></label>
+                  <label>Date <input type="date" id="appointment-date" required /></label>
+                  <label>Time <input type="time" id="appointment-time" required /></label>
+                  <label>Notes <textarea id="appointment-notes" rows="2" placeholder="Details..."></textarea></label>
+                  <button type="submit" class="gui-btn">SAVE APPOINTMENT</button>
+                </form>
+              </div>
+            </div>
+            <div class="gui-card">
+              <div class="gui-card-header">Upcoming</div>
+              <div class="gui-card-body">
+                <ul id="appointments-list" class="appointments-list-full"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-people">
+        <div class="section-inner people-layout">
+          <div class="people-main">
+            <h2 class="page-title">People &amp; Relationships</h2>
+            <div class="people-toolbar">
+              <button type="button" class="gui-btn" id="people-add-btn">+ ADD PERSON</button>
+            </div>
+            <div id="people-form-wrap" class="people-form-wrap hidden">
+              <div class="gui-card">
+                <div class="gui-card-header">ADD / EDIT PERSON</div>
+                <div class="gui-card-body">
+                  <form id="person-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+                    <input type="hidden" id="person-id" />
+                    <label>NAME <input type="text" id="person-name" required placeholder="e.g. Sarah Tan" /></label>
+                    <label>CONNECTION TYPE
+                      <select id="person-connection-type" class="gui-input">
+                        <option value="Friend">Friend</option>
+                        <option value="Family">Family</option>
+                        <option value="Business Partner">Business Partner</option>
+                        <option value="Work">Work</option>
+                        <option value="Mentor">Mentor</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </label>
+                    <label>BIRTHDAY <input type="date" id="person-birthday" /></label>
+                    <label>LAST CONTACTED <input type="date" id="person-last-spoken" /></label>
+                    <label>PERSONAL NOTES <textarea id="person-notes" rows="3" placeholder="e.g. Sarah loves dark roast coffee"></textarea></label>
+                    <label>GIFT IDEAS <textarea id="person-gift-ideas" rows="2" placeholder="Birthday / holiday ideas"></textarea></label>
+                    <div class="habit-form-actions">
+                      <button type="submit" class="gui-btn">SAVE</button>
+                      <button type="button" class="gui-btn gui-btn-outline" id="person-cancel-btn">CANCEL</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <ul id="people-directory" class="people-directory"></ul>
+          </div>
+          <aside id="people-detail-panel" class="people-detail-panel" aria-label="Relationship detail">
+            <div id="people-detail-empty" class="people-detail-empty">SELECT A PERSON</div>
+            <div id="people-detail-content" class="people-detail-content hidden">
+              <div class="people-identity-header">
+                <div class="people-avatar" id="people-detail-avatar"></div>
+                <h3 class="people-detail-name" id="people-detail-name"></h3>
+                <span class="people-connection-type" id="people-detail-connection"></span>
+                <span class="people-meta" id="people-detail-birthday"></span>
+                <span class="people-meta" id="people-detail-last-contact"></span>
+                <div class="people-identity-actions">
+                <button type="button" class="gui-btn gui-btn-ghost gui-btn-sm" id="people-detail-edit-btn">EDIT</button>
+                <button type="button" class="gui-btn gui-btn-ghost gui-btn-sm people-delete-btn" id="people-detail-delete-btn">DELETE CONTACT</button>
+              </div>
+              </div>
+              <div class="people-section">
+                <h4 class="people-section-title">PERSONAL NOTES</h4>
+                <textarea id="people-detail-notes" class="people-notes-input" rows="3" placeholder="Important details, small wins..."></textarea>
+              </div>
+              <div class="people-section">
+                <h4 class="people-section-title">GIFT IDEAS</h4>
+                <textarea id="people-detail-gift-ideas" class="people-notes-input" rows="2" placeholder="Birthday / holiday ideas"></textarea>
+              </div>
+              <div class="people-ledger-card gui-card">
+                <div class="gui-card-header">FINANCIAL LEDGER</div>
+                <div class="gui-card-body">
+                  <div class="ledger-balance-wrap">
+                    <span class="ledger-balance" id="people-ledger-balance">0</span>
+                    <span class="ledger-status ledger-status-owed" id="people-ledger-status-owed">OWES YOU</span>
+                    <span class="ledger-status ledger-status-you-owe" id="people-ledger-status-you-owe">YOU OWE</span>
+                  </div>
+                  <p class="ledger-linked" id="people-ledger-linked"></p>
+                  <ul class="ledger-transactions" id="people-ledger-transactions"></ul>
+                  <div class="ledger-actions">
+                    <button type="button" class="gui-btn gui-btn-ghost" id="people-ledger-log-payment">LOG PAYMENT</button>
+                    <button type="button" class="gui-btn gui-btn-ghost" id="people-ledger-add-expense">ADD EXPENSE</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div id="people-transaction-modal" class="people-modal hidden" role="dialog" aria-label="Add transaction">
+          <div class="people-modal-inner">
+            <h3 class="people-modal-title" id="people-transaction-modal-title">Log payment</h3>
+            <form id="people-transaction-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
+              <input type="hidden" id="people-tx-person-id" />
+              <label>Date <input type="date" id="people-tx-date" /></label>
+              <label>Description <input type="text" id="people-tx-description" placeholder="e.g. Shared dinner" /></label>
+              <label>Amount <input type="number" id="people-tx-amount" step="0.01" placeholder="e.g. -45 (they paid you)" /></label>
+              <p class="people-tx-hint">Positive = they owe you more. Negative = you owe them more / they paid you back.</p>
+              <div class="habit-form-actions">
+                <button type="submit" class="gui-btn">SAVE</button>
+                <button type="button" class="gui-btn gui-btn-outline" id="people-tx-cancel">CANCEL</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="add-to-circle-modal" class="add-to-circle-overlay hidden" role="dialog" aria-label="Add to your circle">
+          <div class="add-to-circle-card">
+            <div id="add-to-circle-form-wrap" class="add-to-circle-form-wrap">
+              <header class="add-to-circle-header">
+                <span class="add-to-circle-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+                </span>
+                <h2 class="add-to-circle-title">ADD TO YOUR CIRCLE</h2>
+              </header>
+              <form id="add-to-circle-form" class="add-to-circle-form" action="javascript:void(0)" onsubmit="return false;">
+                <input type="hidden" id="add-to-circle-person-id" />
+                <label class="add-to-circle-label">
+                  <span class="add-to-circle-label-text">FULL NAME</span>
+                  <input type="text" id="add-to-circle-name" class="add-to-circle-input" placeholder="e.g., Sarah Tan" autocomplete="name" />
+                </label>
+                <label class="add-to-circle-label">
+                  <span class="add-to-circle-label-text">HOW DO YOU KNOW THEM?</span>
+                  <select id="add-to-circle-connection" class="add-to-circle-input add-to-circle-select">
+                    <option value="Friend">Friend</option>
+                    <option value="Family">Family</option>
+                    <option value="Work">Work</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Business Partner">Business Partner</option>
+                    <option value="Mentor">Mentor</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+                <label class="add-to-circle-label">
+                  <span class="add-to-circle-label-text">BIRTHDAY <span class="add-to-circle-optional">(OPTIONAL)</span></span>
+                  <input type="date" id="add-to-circle-birthday" class="add-to-circle-input" />
+                </label>
+                <div class="add-to-circle-toggle-wrap">
+                  <label class="add-to-circle-toggle-label">
+                    <span class="add-to-circle-toggle-text">LINK TO FINANCES OR HABITS?</span>
+                    <input type="checkbox" id="add-to-circle-link-toggle" class="add-to-circle-toggle" />
+                    <span class="add-to-circle-toggle-slider"></span>
+                  </label>
+                  <div id="add-to-circle-link-options" class="add-to-circle-link-options hidden">
+                    <div class="add-to-circle-habit-row">
+                      <span class="add-to-circle-link-label">LINK TO DEBT</span>
+                      <select id="add-to-circle-debt" class="add-to-circle-habit-select">
+                        <option value="">— NONE —</option>
+                      </select>
+                    </div>
+                    <div class="add-to-circle-habit-row">
+                      <span class="add-to-circle-link-label">LINK TO GOAL</span>
+                      <select id="add-to-circle-goal" class="add-to-circle-habit-select">
+                        <option value="">— NONE —</option>
+                      </select>
+                    </div>
+                    <div class="add-to-circle-habit-row">
+                      <span class="add-to-circle-link-label">ACCOUNTABILITY PARTNER</span>
+                      <select id="add-to-circle-habit" class="add-to-circle-habit-select">
+                        <option value="">— SELECT HABIT —</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="add-to-circle-submit" id="add-to-circle-submit-btn">CREATE PROFILE</button>
+              </form>
+            </div>
+            <div id="add-to-circle-success-wrap" class="add-to-circle-success-wrap hidden">
+              <div class="add-to-circle-success-avatar" id="add-to-circle-success-avatar"></div>
+              <div class="add-to-circle-success-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <p class="add-to-circle-success-text" id="add-to-circle-success-text"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-profile">
+        <div class="profile-layout">
+          <aside class="profile-sidebar" aria-label="Profile navigation">
+            <nav class="profile-nav">
+              <a href="#" class="profile-nav-item active" data-profile-section="overview">
+                <span class="profile-nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+                </span>
+                ACCOUNT OVERVIEW
+              </a>
+              <a href="#" class="profile-nav-item" data-profile-section="financial">
+                <span class="profile-nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </span>
+                FINANCIAL GOALS
+              </a>
+              <a href="#" class="profile-nav-item" data-profile-section="habits">
+                <span class="profile-nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </span>
+                HABIT LOGGING RULES
+              </a>
+              <a href="#" class="profile-nav-item" data-profile-section="notifications">
+                <span class="profile-nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </span>
+                NOTIFICATIONS
+              </a>
+              <a href="#" class="profile-nav-item" data-profile-section="security">
+                <span class="profile-nav-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                SECURITY
+              </a>
+            </nav>
+          </aside>
+          <div class="profile-main">
+            <h2 class="profile-control-title">Personal Control Center</h2>
+            <p class="profile-control-subtitle">Manage your account and system settings by section.</p>
+
+            <div class="profile-section active" id="profile-section-overview">
+              <div class="profile-card">
+                <div class="profile-card-header">Identity</div>
+                <div class="profile-card-body">
+                  <div class="profile-hero-inline">
+                    <label class="profile-avatar-wrap" for="avatar-input">
+                      <div class="profile-avatar" id="dashboard-avatar"><span class="profile-monogram" id="profile-monogram">AJ</span></div>
+                      <span class="profile-avatar-edit">Change photo</span>
+                    </label>
+                    <input type="file" id="avatar-input" accept="image/*" hidden />
+                    <div class="profile-details-fields">
+                      <label class="profile-field">
+                        <span class="profile-field-label">Display name</span>
+                        <div class="profile-name-wrap">
+                          <span class="profile-name" id="profile-name">Alex Johnson</span>
+                          <input type="text" class="profile-name-input" id="profile-name-input" placeholder="Your name" maxlength="60" />
+                          <button type="button" class="profile-inline-edit" id="profile-name-edit" aria-label="Edit name">EDIT</button>
+                        </div>
+                      </label>
+                      <label class="profile-field">
+                        <span class="profile-field-label">Personal mission statement <span class="profile-char-count" id="profile-mission-count">0/150</span></span>
+                        <div class="profile-mission-wrap">
+                          <p class="profile-mission" id="profile-mission">Living debt-free and healthy by 30.</p>
+                          <textarea class="profile-mission-input" id="profile-mission-input" placeholder="e.g. Living debt-free and healthy by 30." maxlength="150" rows="2"></textarea>
+                          <button type="button" class="profile-inline-edit" id="profile-mission-edit" aria-label="Edit mission">EDIT</button>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-card">
+                <div class="profile-card-header">Life Totals</div>
+                <div class="profile-card-body">
+                  <div class="life-totals-bar" id="life-totals-bar">
+                    <span class="life-total-item" id="life-total-habits">Habits completed: 0</span>
+                    <span class="life-total-item" id="life-total-appointments">Appointments met: 0</span>
+                    <span class="life-total-item" id="life-total-debt">Debt milestone: —</span>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-card">
+                <div class="profile-card-body">
+                  <p class="profile-account-history" id="profile-member-since">Member since: January 2023</p>
+                </div>
+              </div>
+              <div class="profile-card">
+                <div class="profile-card-header">Display preferences</div>
+                <div class="profile-card-body">
+                  <label class="profile-field">
+                    <span class="profile-field-label">Currency</span>
+                    <select id="profile-currency" class="profile-select">
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                      <option value="MYR">MYR (RM)</option>
+                    </select>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Date format</span>
+                    <select id="profile-date-format" class="profile-select">
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Weekly reset day</span>
+                    <select id="profile-weekly-reset" class="profile-select">
+                      <option value="0">Sunday</option>
+                      <option value="1">Monday</option>
+                      <option value="2">Tuesday</option>
+                      <option value="3">Wednesday</option>
+                      <option value="4">Thursday</option>
+                      <option value="5">Friday</option>
+                      <option value="6">Saturday</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section" id="profile-section-financial">
+              <div class="profile-card">
+                <div class="profile-card-header">Financial Goals (The Brain of the Money)</div>
+                <div class="profile-card-body">
+                  <label class="profile-field">
+                    <span class="profile-field-label">Monthly debt payoff target</span>
+                    <input type="number" id="profile-monthly-payoff-target" class="profile-input" min="0" step="100" placeholder="e.g. 5000" />
+                    <span class="profile-field-hint">Used on the dashboard for &quot;Debt Payoff&quot; progress.</span>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Paid this month (optional)</span>
+                    <input type="number" id="profile-monthly-paid" class="profile-input" min="0" step="100" placeholder="e.g. 2100" />
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Target debt-free date</span>
+                    <input type="date" id="profile-debt-free-date" class="profile-input" />
+                    <span class="profile-field-hint" id="profile-monthly-payment-hint"></span>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Emergency fund goal</span>
+                    <div class="profile-row">
+                      <input type="number" id="profile-emergency-goal" class="profile-input" min="0" step="100" placeholder="Target amount" />
+                      <input type="number" id="profile-emergency-current" class="profile-input" min="0" step="100" placeholder="Current" />
+                    </div>
+                    <div class="progress-bar" style="margin-top:8px"><span class="progress-fill" id="profile-emergency-progress" style="width:0%"></span></div>
+                  </label>
+                  <div class="profile-field">
+                    <span class="profile-field-label">Debt priority</span>
+                    <div class="profile-radio-group">
+                      <label class="profile-radio"><input type="radio" name="debt-priority" value="snowball" /> Snowball (smallest balance first)</label>
+                      <label class="profile-radio"><input type="radio" name="debt-priority" value="avalanche" /> Avalanche (highest interest first)</label>
+                    </div>
+                  </div>
+                  <div class="profile-field">
+                    <span class="profile-field-label">Savings buckets</span>
+                    <div id="profile-savings-buckets-list"></div>
+                    <button type="button" class="profile-btn profile-btn-outline" id="profile-add-bucket">+ ADD BUCKET</button>
+                  </div>
+                  <label class="profile-field" style="margin-top:1rem;">
+                    <span class="profile-field-label">People: flag balances exceeding</span>
+                    <input type="number" id="profile-people-financial-boundary" class="profile-input" min="0" step="50" placeholder="e.g. 500 (0 = off)" />
+                    <span class="profile-field-hint">If a person&apos;s balance exceeds this amount, it will be flagged on the Financial &amp; Debt tab. Use 0 to disable.</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section" id="profile-section-habits">
+              <div class="profile-card">
+                <div class="profile-card-header">Habit Logging Rules (Derrière-le-scènes)</div>
+                <div class="profile-card-body">
+                  <label class="profile-field">
+                    <span class="profile-field-label">Grace period — allow logging until</span>
+                    <select id="profile-grace-period" class="profile-select">
+                      <option value="23:00">11:00 PM</option>
+                      <option value="00:00">12:00 AM</option>
+                      <option value="01:00">1:00 AM</option>
+                      <option value="02:00">2:00 AM</option>
+                    </select>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Daily reset time — day begins at</span>
+                    <select id="profile-daily-reset" class="profile-select">
+                      <option value="04:00">4:00 AM</option>
+                      <option value="05:00">5:00 AM</option>
+                      <option value="06:00">6:00 AM</option>
+                    </select>
+                  </label>
+                  <label class="profile-toggle-row">
+                    <span class="profile-toggle-label">Streak protection (Vacation mode) — pause streak accumulation</span>
+                    <input type="checkbox" id="profile-streak-protection" class="profile-toggle" />
+                    <span class="profile-toggle-slider"></span>
+                  </label>
+                  <div class="profile-field">
+                    <span class="profile-field-label">Check-in counts toward completion as</span>
+                    <div class="profile-radio-group">
+                      <label class="profile-radio"><input type="radio" name="checkin-counts" value="boolean" /> Boolean (done or not)</label>
+                      <label class="profile-radio"><input type="radio" name="checkin-counts" value="numeric" /> Numeric (count times per day)</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section" id="profile-section-notifications">
+              <div class="profile-card">
+                <div class="profile-card-header">Notifications (Gentle alerts)</div>
+                <div class="profile-card-body">
+                  <label class="profile-toggle-row">
+                    <span class="profile-toggle-label">Morning nudge (intentions)</span>
+                    <input type="checkbox" id="profile-morning-nudge" class="profile-toggle" />
+                    <span class="profile-toggle-slider"></span>
+                  </label>
+                  <label class="profile-field profile-field-indent" id="profile-morning-time-wrap">
+                    <span class="profile-field-label">Time</span>
+                    <input type="time" id="profile-morning-nudge-time" class="profile-input" />
+                  </label>
+                  <label class="profile-toggle-row">
+                    <span class="profile-toggle-label">Evening nudge (reflection)</span>
+                    <input type="checkbox" id="profile-evening-nudge" class="profile-toggle" />
+                    <span class="profile-toggle-slider"></span>
+                  </label>
+                  <label class="profile-field profile-field-indent" id="profile-evening-time-wrap">
+                    <span class="profile-field-label">Time</span>
+                    <input type="time" id="profile-evening-nudge-time" class="profile-input" />
+                  </label>
+                  <label class="profile-toggle-row">
+                    <span class="profile-toggle-label">Debt warning — alert 2 days before payment due</span>
+                    <input type="checkbox" id="profile-debt-warning" class="profile-toggle" />
+                    <span class="profile-toggle-slider"></span>
+                  </label>
+                  <label class="profile-field">
+                    <span class="profile-field-label">Appointment buffer — alert before event</span>
+                    <select id="profile-appointment-buffer" class="profile-select">
+                      <option value="15">15 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="60">60 minutes</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section" id="profile-section-security">
+              <div class="profile-card">
+                <div class="profile-card-header">Security (Data safety)</div>
+                <div class="profile-card-body">
+                  <div class="profile-backup-reminder" role="status">
+                    <strong>Back up your data.</strong> Everything is stored only on this device. If you clear site data or use another browser/device, it will be lost. Use <strong>Download my data (CSV/JSON)</strong> below to save a copy.
+                  </div>
+                  <label class="profile-toggle-row">
+                    <span class="profile-toggle-label">Privacy blur (Public mode) — blur monetary values until hover</span>
+                    <input type="checkbox" id="profile-privacy-blur" class="profile-toggle" />
+                    <span class="profile-toggle-slider"></span>
+                  </label>
+                  <div class="profile-field profile-2fa-row">
+                    <span class="profile-field-label">Two-Factor Authentication (2FA)</span>
+                    <span class="profile-2fa-status" id="profile-2fa-status">Disabled</span>
+                    <button type="button" class="profile-btn profile-btn-outline" id="profile-2fa-configure">Configure</button>
+                  </div>
+                  <div class="profile-field">
+                    <span class="profile-field-label">Active sessions</span>
+                    <ul class="profile-sessions-list" id="profile-sessions-list">
+                      <li>This device — current</li>
+                    </ul>
+                    <button type="button" class="profile-btn profile-btn-outline" id="profile-logout-others">LOG OUT OF ALL OTHER DEVICES</button>
+                  </div>
+                  <div class="profile-privacy-actions">
+                    <button type="button" class="profile-btn profile-btn-export" id="profile-download-data">Download my data (CSV/JSON)</button>
+                    <button type="button" class="profile-btn profile-btn-deactivate" id="profile-delete-account">Permanently delete account</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span class="footer-copy">© <span id="footer-year"></span> LIFEFLOW. Data stored on this device only — back up in Profile → Security.</span>
+      <div class="footer-links">
+        <a href="#">Contact</a>
+        <a href="#">Settings</a>
+      </div>
+    </footer>
+
+    <script>
+      // Tab navigation: run as soon as DOM is ready so tabs work even if app.js fails or loads late
+      (function() {
+        function goToTab(tab) {
+          document.querySelectorAll('.nav-link').forEach(function(a) {
+            a.classList.toggle('active', a.getAttribute('data-tab') === tab);
+          });
+          document.querySelectorAll('.tab-panel').forEach(function(panel) {
+            panel.classList.toggle('active', panel.id === 'tab-' + tab);
+          });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.addEventListener('click', function(e) {
+            var el = e.target;
+            while (el && el !== document.body) {
+              var tab = el.getAttribute && el.getAttribute('data-tab');
+              if (tab && (el.tagName === 'A' || el.tagName === 'BUTTON')) {
+                e.preventDefault();
+                goToTab(tab);
+                return;
+              }
+              el = el.parentElement;
+            }
+          });
+        });
+      })();
+    </script>
+    <script src="app.js?v=15"></script>
+    <script>
+      // Force init to run after app.js so forms and tabs always get wired
+      if (typeof window.init === 'function') {
+        window.init();
+      } else {
+        console.error('LIFEFLOW: app.js did not load or init is missing. Check console for errors.');
+        var banner = document.getElementById('save-error-banner');
+        if (banner) {
+          banner.textContent = 'App script did not load. Use "npx serve" in the project folder and open http://localhost:3000';
+          banner.classList.add('show');
+        }
+      }
+      if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
+      var fy = document.getElementById('footer-year');
+      if (fy) fy.textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
