@@ -195,6 +195,16 @@ function showSaveError(msg) {
   }
 }
 
+/** Call deployed /api/generate-insight (Vercel). Returns insight text or throws. */
+async function fetchAIDailyInsight() {
+  const url = typeof location !== "undefined" && location.origin ? `${location.origin}/api/generate-insight` : "/api/generate-insight";
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.details || "Failed to generate insight");
+  if (!data.insight || typeof data.insight !== "string") throw new Error("Invalid response");
+  return data.insight.trim();
+}
+
 let state = loadState();
 if (!state || typeof state !== "object") state = JSON.parse(JSON.stringify(defaultState));
 
@@ -613,12 +623,12 @@ function renderDailySnapshot() {
   const ringFill = $("snapshot-deepwork-ring-fill");
   if (ringFill) ringFill.setAttribute("stroke-dasharray", dashFilled.toFixed(2) + " " + circum.toFixed(2));
   const currentEl = $("snapshot-deepwork-current");
-  const targetEl = $("snapshot-deepwork-target");
+  const targetDisplayEl = $("snapshot-deepwork-target-display");
   if (currentEl) currentEl.textContent = deepWorkHours;
-  if (targetEl) targetEl.textContent = target;
+  if (targetDisplayEl) targetDisplayEl.textContent = target;
   const deepworkInput = $("snapshot-deepwork-input");
   if (deepworkInput) deepworkInput.value = deepWorkHours || "";
-  const deepworkTargetInput = $("snapshot-deepwork-target");
+  const deepworkTargetInput = $("snapshot-deepwork-target-input");
   if (deepworkTargetInput) deepworkTargetInput.value = target;
 
   const insightInput = $("snapshot-insight-input");
@@ -694,7 +704,7 @@ function setupDailySnapshot() {
       renderDailySnapshot();
     });
   }
-  const deepworkTargetInput = $("snapshot-deepwork-target");
+  const deepworkTargetInput = $("snapshot-deepwork-target-input");
   if (deepworkTargetInput) {
     deepworkTargetInput.addEventListener("change", function () {
       const v = parseFloat(deepworkTargetInput.value, 10);
@@ -712,7 +722,43 @@ function setupDailySnapshot() {
     });
   }
 
+  const snapshotAiBtn = $("snapshot-generate-insight-btn");
+  if (snapshotAiBtn) {
+    snapshotAiBtn.addEventListener("click", function () {
+      runAIGenerateInsight(snapshotAiBtn, function () {
+        if (insightInput) insightInput.value = state.insightLog[todayStr()] || "";
+        renderDailySnapshot();
+      });
+    });
+  }
+
   renderDailySnapshot();
+}
+
+function runAIGenerateInsight(buttonEl, onSuccess) {
+  const todayKey = todayStr();
+  const label = buttonEl ? buttonEl.textContent : "";
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = "Generating…";
+  }
+  fetchAIDailyInsight()
+    .then(function (insight) {
+      state.insightLog[todayKey] = insight;
+      saveState();
+      if (typeof onSuccess === "function") onSuccess();
+      showSavedToast("INSIGHT SAVED");
+      renderDashboard();
+    })
+    .catch(function (err) {
+      showSaveError(err.message || "Could not generate insight. Use Vercel deploy and set OPENAI_API_KEY.");
+    })
+    .finally(function () {
+      if (buttonEl) {
+        buttonEl.disabled = false;
+        buttonEl.textContent = label || "GENERATE WITH AI";
+      }
+    });
 }
 
 // Finances
@@ -1486,6 +1532,14 @@ function renderDashboard() {
     }
   }
 
+  // Daily Insight widget (same data as Habit Tracker → Daily Insights)
+  const insightTextEl = $("dashboard-daily-insight-text");
+  if (insightTextEl) {
+    const insightToday = (state.insightLog && state.insightLog[todayKey]) ? state.insightLog[todayKey].trim() : "";
+    insightTextEl.textContent = insightToday || "What did you learn today? Add one in Habit Tracker.";
+    insightTextEl.classList.toggle("dashboard-daily-insight-empty", !insightToday);
+  }
+
   // Card 2: Financial snapshot
   const totalDebt = totalDebtRemaining();
   const monthlyTarget = Number(profile.monthlyDebtPayoffTarget) || 0;
@@ -1921,6 +1975,13 @@ function init() {
     try { renderAppointments(); } catch (e) { console.error("renderAppointments", e); }
     try { renderPeople(); } catch (e) { console.error("renderPeople", e); }
     try { renderDashboard(); } catch (e) { console.error("renderDashboard", e); }
+
+    const dashboardAiBtn = $("dashboard-generate-insight-btn");
+    if (dashboardAiBtn) {
+      dashboardAiBtn.addEventListener("click", function () {
+        runAIGenerateInsight(dashboardAiBtn, function () {});
+      });
+    }
   } catch (e) {
     console.error("init error", e);
   }

@@ -36,3 +36,7 @@ Then open the site on your phone and add it to the home screen.
 ## Run locally (no server)
 
 Double‑click `index.html` to open in a browser. Data is stored in localStorage.
+
+## AI Daily Insight (Vercel)
+
+The **Generate with AI** button in Daily Insight uses a serverless API that runs only when the app is deployed on **Vercel**. Add your OpenAI API key in Vercel: **Project → Settings → Environment Variables** → `OPENAI_API_KEY`. The generated insight focuses on lifestyle, financial, and spiritual motivation.

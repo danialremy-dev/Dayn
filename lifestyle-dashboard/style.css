@@ -281,6 +281,63 @@ body {
   color: var(--text);
 }
 
+/* Daily Insight widget inside Habit Tracker card (dashboard home) */
+.dashboard-daily-insight-widget {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--sage-pale);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.dashboard-daily-insight-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+  margin-bottom: 0.35rem;
+}
+.dashboard-daily-insight-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.dashboard-daily-insight-text.dashboard-daily-insight-empty {
+  color: var(--text-soft);
+  font-style: italic;
+}
+.dashboard-daily-insight-edit {
+  font-size: 0.8rem;
+  color: var(--sage);
+  text-decoration: none;
+}
+.dashboard-daily-insight-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+.dashboard-daily-insight-ai-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--sage);
+  cursor: pointer;
+  font-family: inherit;
+}
+.dashboard-daily-insight-ai-btn:hover {
+  text-decoration: underline;
+}
+.dashboard-daily-insight-ai-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.dashboard-daily-insight-edit:hover {
+  text-decoration: underline;
+}
+
 .habit-add-icon {
   display: inline-flex;
   align-items: center;
@@ -329,6 +386,20 @@ body {
 }
 .snapshot-card-body {
   padding: 1.25rem;
+}
+.snapshot-insight-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+.snapshot-ai-btn {
+  font-size: 0.85rem;
+}
+.snapshot-insight-ai-hint {
+  font-size: 0.75rem;
+  color: var(--text-soft);
 }
 .snapshot-energy .snapshot-card-body,
 .snapshot-deepwork .snapshot-card-body,

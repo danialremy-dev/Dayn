@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="logo.png?v=2" />
     <link rel="stylesheet" href="style.css?v=6" />
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <div id="saved-toast" class="saved-toast" aria-live="polite">SAVED!</div>
@@ -42,6 +43,14 @@
             <div class="gui-card-header">HABIT TRACKER</div>
             <div class="gui-card-body">
               <ul class="habit-checklist" id="dashboard-habits-list"></ul>
+              <div class="dashboard-daily-insight-widget" id="dashboard-daily-insight-wrap" role="region" aria-label="Daily insight">
+                <span class="dashboard-daily-insight-label">DAILY INSIGHT</span>
+                <p class="dashboard-daily-insight-text" id="dashboard-daily-insight-text"></p>
+                <div class="dashboard-daily-insight-links">
+                  <button type="button" class="dashboard-daily-insight-ai-btn gui-link" id="dashboard-generate-insight-btn" aria-label="Generate daily insight with AI">Generate with AI</button>
+                  <a href="#" class="dashboard-daily-insight-edit gui-link" data-tab="habits" aria-label="Edit daily insight in Habit Tracker">Edit in Habit Tracker</a>
+                </div>
+              </div>
               <div class="card-decoration card-floral" aria-hidden="true">
                 <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 60c-5 0-10-3-14-8 2-2 5-4 8-4 4 0 7 2 10 5-3 3-6 7-4 7zm0-20c-8 0-15-7-15-15 0-4 2-8 5-11 3 3 5 7 5 11 0 8-7 15-15 15zm8-8c0-4-2-8-5-11 3-3 7-5 11-5 8 0 15 7 15 15 0 4-2 8-5 11-3-3-7-5-11-5-4 0-7 2-9 5z" fill="currentColor" opacity="0.2"/><circle cx="40" cy="35" r="6" fill="currentColor" opacity="0.15"/></svg>
               </div>
@@ -126,12 +135,12 @@
                   <div class="deepwork-values">
                     <span class="deepwork-current" id="snapshot-deepwork-current">0</span>
                     <span class="deepwork-sep">/</span>
-                    <span class="deepwork-target" id="snapshot-deepwork-target">2</span>
+                    <span class="deepwork-target" id="snapshot-deepwork-target-display">2</span>
                     <span class="deepwork-unit">hrs</span>
                   </div>
                 </div>
                 <label class="snapshot-input-label">Hours today <input type="number" id="snapshot-deepwork-input" class="snapshot-input-num" min="0" max="24" step="0.5" placeholder="0" /></label>
-                <label class="snapshot-input-label snapshot-target-label">Target (hrs) <input type="number" id="snapshot-deepwork-target" class="snapshot-input-num" min="0.5" max="12" step="0.5" value="2" /></label>
+                <label class="snapshot-input-label snapshot-target-label">Target (hrs) <input type="number" id="snapshot-deepwork-target-input" class="snapshot-input-num" min="0.5" max="12" step="0.5" value="2" title="Edit your daily deep work target" /></label>
               </div>
             </div>
             <div class="snapshot-card snapshot-insight">
@@ -139,6 +148,10 @@
               <div class="snapshot-card-body">
                 <label class="snapshot-input-label">What did you learn today?</label>
                 <textarea id="snapshot-insight-input" class="snapshot-insight-textarea" rows="3" placeholder="e.g. Learned how to structure a nested dictionary in Python"></textarea>
+                <div class="snapshot-insight-actions">
+                  <button type="button" class="gui-btn gui-btn-outline snapshot-ai-btn" id="snapshot-generate-insight-btn" aria-label="Generate daily insight with AI">GENERATE WITH AI</button>
+                  <span class="snapshot-insight-ai-hint">Lifestyle, financial &amp; spiritual motivation</span>
+                </div>
               </div>
             </div>
           </div>
