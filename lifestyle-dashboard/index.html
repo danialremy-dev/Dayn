@@ -7,50 +7,113 @@
     <meta name="theme-color" content="#9caf88" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="logo.png?v=2" />
-    <link rel="stylesheet" href="style.css?v=6" />
+    <link rel="stylesheet" href="style.css?v=7" />
     <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <div id="saved-toast" class="saved-toast" aria-live="polite">SAVED!</div>
     <div id="save-error-banner" class="save-error-banner" role="alert" onclick="this.classList.remove('show')"></div>
 
-    <header class="top-nav">
-      <a href="#" class="nav-logo" data-tab="dashboard">LIFEFLOW</a>
-      <nav class="nav-menu" aria-label="Main navigation">
-        <a href="#" class="nav-link active" data-tab="dashboard">HOME</a>
-        <a href="#" class="nav-link" data-tab="habits">HABIT TRACKER</a>
-        <a href="#" class="nav-link" data-tab="finance">FINANCIAL &amp; DEBT</a>
-        <a href="#" class="nav-link" data-tab="appointments">APPOINTMENTS</a>
-        <a href="#" class="nav-link" data-tab="people">PEOPLE</a>
-        <a href="#" class="nav-link" data-tab="profile">PROFILE</a>
-      </nav>
-      <div class="nav-search-wrap">
-        <input type="search" class="nav-search" placeholder="Search..." aria-label="Search" />
+    <header class="top-nav top-nav-flow" id="top-nav">
+      <a href="#" class="nav-logo" data-flow="today" aria-label="Go to Today">LIFEFLOW</a>
+      <div class="nav-utility-wrap">
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu" onclick="typeof window.toggleUtilityMenu === 'function' && window.toggleUtilityMenu(event)">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+        <nav class="nav-menu nav-menu-utility" id="nav-menu" aria-label="Utility menu">
+          <a href="#" class="nav-link" data-tab="appointments">APPOINTMENTS</a>
+          <a href="#" class="nav-link" data-tab="archive">ARCHIVE</a>
+          <a href="#" class="nav-link" data-tab="profile">SETTINGS</a>
+        </nav>
       </div>
     </header>
 
     <main class="main-wrap">
-      <section class="tab-panel active" id="tab-dashboard">
-        <div class="hero">
-          <h1 class="hero-headline">YOUR LIFE, ALL IN ONE PLACE.</h1>
+      <section class="tab-panel active" id="tab-dashboard" data-flow-panel="today">
+        <div class="hero hero-today">
+          <h1 class="hero-headline">TODAY</h1>
+          <p class="hero-subline">What do I need to do now?</p>
         </div>
-        <div class="subtle-stats-bar" id="subtle-stats-dashboard" role="region" aria-label="Debt summary">
-          <span class="subtle-stats-text" id="subtle-stats-dashboard-text">Total Debt: — | Goal: —</span>
-          <div class="subtle-stats-chart" id="subtle-stats-dashboard-chart" aria-hidden="true"></div>
+
+        <div class="focus-sphere-wrap" id="focus-sphere-wrap">
+          <div class="focus-sphere-card" id="focus-sphere-card">
+            <div class="focus-sphere-view focus-sphere-idle" id="focus-view-idle">
+              <div class="focus-sphere-circle focus-sphere-circle--idle" id="focus-sphere-idle">
+                <svg class="focus-sphere-svg" viewBox="0 0 120 120" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="focus-sphere-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#e8efe3" />
+                      <stop offset="100%" stop-color="#b8c9a8" />
+                    </linearGradient>
+                  </defs>
+                  <circle class="focus-sphere-bg" cx="60" cy="60" r="56" fill="url(#focus-sphere-gradient)" />
+                </svg>
+                <span class="focus-sphere-time" id="focus-time-idle">45:00</span>
+              </div>
+              <p class="focus-sphere-hint">Set your intention, then start.</p>
+              <input type="text" class="focus-sphere-objective-input" id="focus-objective-input" placeholder="e.g. Analyze Etsy niche data" maxlength="60" />
+              <div class="focus-sphere-duration-row">
+                <label class="focus-sphere-duration-label">Duration</label>
+                <select class="focus-sphere-duration-select" id="focus-duration-select" aria-label="Focus block duration">
+                  <option value="15">15 min</option>
+                  <option value="25">25 min</option>
+                  <option value="45" selected>45 min</option>
+                  <option value="60">60 min</option>
+                  <option value="90">90 min</option>
+                </select>
+              </div>
+              <button type="button" class="focus-sphere-btn focus-sphere-btn--start" id="focus-btn-start">Start focus block</button>
+            </div>
+            <div class="focus-sphere-view focus-sphere-running hidden" id="focus-view-running">
+              <div class="focus-sphere-circle focus-sphere-circle--running" id="focus-sphere-running">
+                <svg class="focus-sphere-svg" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="focus-sphere-bg" cx="60" cy="60" r="56" fill="url(#focus-sphere-gradient)" />
+                  <circle class="focus-sphere-sweep" id="focus-sphere-sweep" cx="60" cy="60" r="56" fill="none" stroke="#7d9369" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 352" transform="rotate(-90 60 60)" />
+                </svg>
+                <span class="focus-sphere-time" id="focus-time-running">45:00</span>
+              </div>
+              <p class="focus-sphere-objective focus-sphere-objective--wave" id="focus-objective-running">Analyze Etsy niche data</p>
+              <button type="button" class="focus-sphere-btn focus-sphere-btn--pause" id="focus-btn-pause">Pause</button>
+            </div>
+            <div class="focus-sphere-view focus-sphere-paused hidden" id="focus-view-paused">
+              <div class="focus-sphere-circle focus-sphere-circle--paused" id="focus-sphere-paused">
+                <svg class="focus-sphere-svg" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="focus-sphere-bg" cx="60" cy="60" r="56" fill="var(--warm-gray-pale)" />
+                  <circle class="focus-sphere-sweep" id="focus-sphere-sweep-paused" cx="60" cy="60" r="56" fill="none" stroke="#c4c4bc" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 352" transform="rotate(-90 60 60)" />
+                </svg>
+                <span class="focus-sphere-time focus-sphere-time--dim" id="focus-time-paused">44:12</span>
+              </div>
+              <p class="focus-sphere-objective focus-sphere-objective--dim" id="focus-objective-paused"></p>
+              <button type="button" class="focus-sphere-btn focus-sphere-btn--reset" id="focus-btn-reset">Reset session?</button>
+            </div>
+            <div class="focus-sphere-view focus-sphere-celebrating hidden" id="focus-view-celebrating">
+              <div class="focus-sphere-circle focus-sphere-circle--celebrate" id="focus-sphere-celebrate">
+                <svg class="focus-sphere-svg" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="focus-sphere-bg focus-sphere-bg--solid" cx="60" cy="60" r="56" fill="#7d9369" />
+                </svg>
+                <span class="focus-sphere-time focus-sphere-time--white" id="focus-time-celebrate">00:00</span>
+              </div>
+            </div>
+            <div class="focus-sphere-view focus-sphere-report hidden" id="focus-view-report">
+              <div class="focus-sphere-report-content">
+                <p class="focus-sphere-report-title">Excellent session.</p>
+                <p class="focus-sphere-report-message" id="focus-report-message">You just invested 45 minutes into your focus.</p>
+                <div class="focus-sphere-report-actions">
+                  <button type="button" class="focus-sphere-btn focus-sphere-btn--primary" id="focus-btn-next-block">Start next block</button>
+                  <button type="button" class="focus-sphere-btn focus-sphere-btn--outline" id="focus-btn-break">Take 15m break</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
         <div class="dashboard-cards">
           <article class="gui-card gui-card-habits">
             <div class="gui-card-header">HABIT TRACKER</div>
             <div class="gui-card-body">
               <ul class="habit-checklist" id="dashboard-habits-list"></ul>
-              <div class="dashboard-daily-insight-widget" id="dashboard-daily-insight-wrap" role="region" aria-label="Daily insight">
-                <span class="dashboard-daily-insight-label">DAILY INSIGHT</span>
-                <p class="dashboard-daily-insight-text" id="dashboard-daily-insight-text"></p>
-                <div class="dashboard-daily-insight-links">
-                  <button type="button" class="dashboard-daily-insight-ai-btn gui-link" id="dashboard-generate-insight-btn" aria-label="Generate daily insight with AI">Generate with AI</button>
-                  <a href="#" class="dashboard-daily-insight-edit gui-link" data-tab="habits" aria-label="Edit daily insight in Habit Tracker">Edit in Habit Tracker</a>
-                </div>
-              </div>
               <div class="card-decoration card-floral" aria-hidden="true">
                 <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 60c-5 0-10-3-14-8 2-2 5-4 8-4 4 0 7 2 10 5-3 3-6 7-4 7zm0-20c-8 0-15-7-15-15 0-4 2-8 5-11 3 3 5 7 5 11 0 8-7 15-15 15zm8-8c0-4-2-8-5-11 3-3 7-5 11-5 8 0 15 7 15 15 0 4-2 8-5 11-3-3-7-5-11-5-4 0-7 2-9 5z" fill="currentColor" opacity="0.2"/><circle cx="40" cy="35" r="6" fill="currentColor" opacity="0.15"/></svg>
               </div>
@@ -59,7 +122,7 @@
 
           <article class="gui-card gui-card-finance">
             <div class="gui-card-header">FINANCIAL &amp; DEBT MANAGEMENT</div>
-            <div class="gui-card-body">
+            <div class="gui-card-body" data-privacy-blur>
               <p class="finance-total" id="dashboard-total-debt">Total Debt: <strong>$0</strong></p>
               <div class="finance-progress-wrap">
                 <p class="finance-row">Debt Payoff: <span id="dashboard-debt-payoff">$0 / $0 monthly target</span></p>
@@ -97,13 +160,9 @@
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-habits">
+      <section class="tab-panel" id="tab-habits" data-flow-panel="growth">
         <div class="section-inner daily-snapshot-wrap">
           <h2 class="page-title">Daily Snapshot</h2>
-          <div class="subtle-stats-bar" id="subtle-stats-daily" role="region" aria-label="Debt summary">
-            <span class="subtle-stats-text" id="subtle-stats-daily-text">Total Debt: — | Goal: —</span>
-            <div class="subtle-stats-chart" id="subtle-stats-daily-chart" aria-hidden="true"></div>
-          </div>
           <p class="snapshot-north-star" id="snapshot-north-star">You are 0% through your daily goals.</p>
 
           <div class="snapshot-grid">
@@ -116,6 +175,7 @@
                   <span class="energy-label">5</span>
                 </div>
                 <p class="energy-value" id="snapshot-energy-value">3</p>
+                <p class="energy-quote" id="snapshot-energy-quote" aria-live="polite"></p>
                 <div class="energy-trend-wrap">
                   <span class="energy-trend-label">Last 7 days</span>
                   <div class="energy-trend-chart" id="snapshot-energy-trend" aria-hidden="true"></div>
@@ -128,6 +188,12 @@
                 <div class="deepwork-ring-wrap">
                   <div class="deepwork-ring" id="snapshot-deepwork-ring">
                     <svg viewBox="0 0 36 36" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="deepwork-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#b8c9a8" />
+                          <stop offset="100%" stop-color="#9caf88" />
+                        </linearGradient>
+                      </defs>
                       <path class="deepwork-ring-bg" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
                       <path class="deepwork-ring-fill" id="snapshot-deepwork-ring-fill" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
                     </svg>
@@ -143,31 +209,18 @@
                 <label class="snapshot-input-label snapshot-target-label">Target (hrs) <input type="number" id="snapshot-deepwork-target-input" class="snapshot-input-num" min="0.5" max="12" step="0.5" value="2" title="Edit your daily deep work target" /></label>
               </div>
             </div>
-            <div class="snapshot-card snapshot-insight">
-              <div class="snapshot-card-header">DAILY INSIGHTS</div>
-              <div class="snapshot-card-body">
-                <label class="snapshot-input-label">What did you learn today?</label>
-                <textarea id="snapshot-insight-input" class="snapshot-insight-textarea" rows="3" placeholder="e.g. Learned how to structure a nested dictionary in Python"></textarea>
-                <div class="snapshot-insight-actions">
-                  <button type="button" class="gui-btn gui-btn-outline snapshot-ai-btn" id="snapshot-generate-insight-btn" aria-label="Generate daily insight with AI">GENERATE WITH AI</button>
-                  <span class="snapshot-insight-ai-hint">Lifestyle, financial &amp; spiritual motivation</span>
-                </div>
-              </div>
+          </div>
+
+          <div class="snapshot-card habit-heatmap-card">
+            <div class="snapshot-card-header habit-heatmap-card-header">
+              <span>CONSISTENCY</span>
+              <button type="button" class="habit-heatmap-add-btn" id="add-habit-from-consistency-btn" aria-label="Add habit">+ Add habit</button>
+            </div>
+            <div class="snapshot-card-body habit-consistency-body">
+              <div id="habit-heatmap-grid-wrap" class="habit-consistency-cards-wrap"></div>
             </div>
           </div>
 
-          <div class="snapshot-card snapshot-momentum">
-            <div class="snapshot-card-header">HABIT MOMENTUM</div>
-            <div class="snapshot-card-body">
-              <div class="momentum-bar-wrap" id="snapshot-momentum-bar"></div>
-              <p class="momentum-legend" id="snapshot-momentum-legend"></p>
-            </div>
-          </div>
-
-          <div class="habits-header-row">
-            <button type="button" class="gui-btn" id="add-habit-btn">+ ADD HABIT</button>
-          </div>
-          <div id="habits-cards-list" class="habits-cards-list"></div>
           <div id="habit-form-panel" class="habit-form-panel hidden">
             <div class="gui-card">
               <div class="gui-card-header">ADD / EDIT HABIT</div>
@@ -177,6 +230,7 @@
                 <form id="habit-form" class="stack-form" action="javascript:void(0)" onsubmit="return false;">
                   <input type="hidden" id="habit-id" />
                   <label>Name <input type="text" id="habit-name" required placeholder="e.g. Meditation" /></label>
+                  <label>Color <select id="habit-color" class="habit-color-select" aria-label="Habit color"></select></label>
                   <label>Description <input type="text" id="habit-description" placeholder="e.g. Meditate daily for 15 minutes" /></label>
                   <label>Goal (times per week) <input type="number" id="habit-goal" min="1" max="7" value="5" /></label>
                   <div class="habit-form-actions">
@@ -190,8 +244,8 @@
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-finance">
-        <div class="section-inner">
+      <section class="tab-panel" id="tab-finance" data-flow-panel="finance">
+        <div class="section-inner" data-privacy-blur>
           <h2 class="page-title">Financial &amp; Debt</h2>
           <div id="finance-people-boundary-banner" class="people-boundary-banner hidden" role="alert"></div>
           <div id="finance-debt-due-banner" class="people-boundary-banner debt-due-banner hidden" role="alert"></div>
@@ -254,7 +308,7 @@
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-people">
+      <section class="tab-panel" id="tab-people" data-flow-panel="circle">
         <div class="section-inner people-layout">
           <div class="people-main">
             <h2 class="page-title">People &amp; Relationships</h2>
@@ -314,7 +368,7 @@
                 <h4 class="people-section-title">GIFT IDEAS</h4>
                 <textarea id="people-detail-gift-ideas" class="people-notes-input" rows="2" placeholder="Birthday / holiday ideas"></textarea>
               </div>
-              <div class="people-ledger-card gui-card">
+              <div class="people-ledger-card gui-card" data-privacy-blur>
                 <div class="gui-card-header">FINANCIAL LEDGER</div>
                 <div class="gui-card-body">
                   <div class="ledger-balance-wrap">
@@ -419,6 +473,14 @@
               <p class="add-to-circle-success-text" id="add-to-circle-success-text"></p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-archive">
+        <div class="gui-card" style="max-width: 32rem; margin: 2rem auto; padding: 2rem;">
+          <h2 class="gui-card-header">ARCHIVE</h2>
+          <p class="hero-subline" style="margin-top: 0.5rem;">Past monthly reviews and completed goals.</p>
+          <p class="quick-log-empty" style="margin-top: 1rem;">Coming soon. Your achievements will live here.</p>
         </div>
       </section>
 
@@ -702,6 +764,65 @@
         </div>
       </section>
     </main>
+
+    <!-- Bottom navigation: flow-state (Today → Growth → + → Circle → Finance) -->
+    <nav class="flow-bottom-nav" id="flow-bottom-nav" aria-label="Primary navigation">
+      <button type="button" class="flow-nav-item" data-flow="today" aria-label="Today" aria-current="true">
+        <span class="flow-nav-label">TODAY</span>
+      </button>
+      <button type="button" class="flow-nav-item" data-flow="growth" aria-label="Growth">
+        <span class="flow-nav-label">GROWTH</span>
+      </button>
+      <button type="button" class="flow-nav-action" id="flow-quick-log-btn" aria-label="Quick log – add habit, finance, or person note">
+        <svg class="flow-nav-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16m8-8H4"/></svg>
+      </button>
+      <button type="button" class="flow-nav-item" data-flow="circle" aria-label="Circle">
+        <span class="flow-nav-label">CIRCLE</span>
+      </button>
+      <button type="button" class="flow-nav-item" data-flow="finance" aria-label="Finance">
+        <span class="flow-nav-label">FINANCE</span>
+      </button>
+    </nav>
+
+    <!-- Quick Log modal: add Habit / Finance / Person note without leaving the page -->
+    <div class="quick-log-overlay hidden" id="quick-log-overlay" role="dialog" aria-modal="true" aria-labelledby="quick-log-title">
+      <div class="quick-log-card">
+        <h2 class="quick-log-title" id="quick-log-title">QUICK LOG</h2>
+        <p class="quick-log-hint">Log one thing without switching tabs.</p>
+        <div class="quick-log-options">
+          <button type="button" class="quick-log-opt" data-quick="habit">
+            <span class="quick-log-opt-icon">✓</span>
+            <span class="quick-log-opt-label">Log a habit</span>
+          </button>
+          <button type="button" class="quick-log-opt" data-quick="finance">
+            <span class="quick-log-opt-icon">$</span>
+            <span class="quick-log-opt-label">Log finance</span>
+          </button>
+          <button type="button" class="quick-log-opt" data-quick="person">
+            <span class="quick-log-opt-icon">👤</span>
+            <span class="quick-log-opt-label">Log person note</span>
+          </button>
+        </div>
+        <div class="quick-log-form quick-log-form-habit hidden" id="quick-log-form-habit">
+          <p class="quick-log-form-title">Check off a habit</p>
+          <ul class="quick-log-habit-list" id="quick-log-habit-list"></ul>
+          <button type="button" class="gui-btn" id="quick-log-habit-save">SAVE</button>
+        </div>
+        <div class="quick-log-form quick-log-form-finance hidden" id="quick-log-form-finance">
+          <p class="quick-log-form-title">Quick finance entry</p>
+          <label>Amount <input type="number" id="quick-log-amount" step="0.01" min="0" placeholder="0" /></label>
+          <label>Note <input type="text" id="quick-log-finance-note" placeholder="e.g. Coffee with friend" /></label>
+          <button type="button" class="gui-btn" id="quick-log-finance-save">SAVE</button>
+        </div>
+        <div class="quick-log-form quick-log-form-person hidden" id="quick-log-form-person">
+          <p class="quick-log-form-title">Add a note for someone</p>
+          <label>Person <select id="quick-log-person-select"></select></label>
+          <label>Note <input type="text" id="quick-log-person-note" placeholder="e.g. Coffee chat" /></label>
+          <button type="button" class="gui-btn" id="quick-log-person-save">SAVE</button>
+        </div>
+        <button type="button" class="quick-log-close" id="quick-log-close" aria-label="Close">×</button>
+      </div>
+    </div>
 
     <footer class="site-footer">
       <span class="footer-copy">© <span id="footer-year"></span> LIFEFLOW. Data stored on this device only — back up in Profile → Security.</span>

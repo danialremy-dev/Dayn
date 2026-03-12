@@ -76,6 +76,7 @@ function saveProfile(profile) {
 let profile = loadProfile();
 
 const COLOR_PALETTE = [
+  { id: "sage", hex: "#9caf88", strong: "#7d9369" },
   { id: "purple", hex: "#7c3aed", strong: "#6d28d9" },
   { id: "teal", hex: "#14b8a6", strong: "#0d9488" },
   { id: "blue", hex: "#3b82f6", strong: "#2563eb" },
@@ -100,6 +101,7 @@ const defaultState = {
   deepWorkLog: {},
   insightLog: {},
   debtHistory: [],
+  feedLog: [],
 };
 
 const CONNECTION_TYPES = ["Friend", "Family", "Business Partner", "Work", "Mentor", "Other"];
@@ -112,13 +114,18 @@ function loadState() {
       if (!raw) return JSON.parse(JSON.stringify(defaultState));
       const parsed = JSON.parse(raw);
       const merged = { ...JSON.parse(JSON.stringify(defaultState)), ...parsed };
-      merged.habits = (merged.habits || []).map((h) => ({ ...h, description: h.description || h.name }));
+      merged.habits = (merged.habits || []).map((h) => ({
+        ...h,
+        description: h.description || h.name,
+        color: h.color || (COLOR_PALETTE[0] && COLOR_PALETTE[0].hex) || "#9caf88",
+      }));
       merged.debts = (merged.debts || []).map((d) => ({ ...d, dueDate: d.dueDate || "" }));
       merged.energyLog = merged.energyLog || {};
       merged.deepWorkTarget = typeof merged.deepWorkTarget === "number" ? merged.deepWorkTarget : 2;
       merged.deepWorkLog = merged.deepWorkLog || {};
       merged.insightLog = merged.insightLog || {};
       merged.debtHistory = Array.isArray(merged.debtHistory) ? merged.debtHistory.slice(-180) : [];
+      merged.feedLog = Array.isArray(merged.feedLog) ? merged.feedLog.slice(-500) : [];
       merged.people = (merged.people || []).map((p) => ({
         ...p,
         connectionType: p.connectionType || "Friend",
@@ -247,6 +254,74 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+var ENERGY_QUOTES = [
+  "Rest is part of the journey. Be kind to yourself today.",
+  "Small steps still move you forward. You've got this.",
+  "Steady as you go. You're right where you need to be.",
+  "You're in the flow. Keep that momentum going.",
+  "You're doing great today. Your energy is a gift."
+];
+function getEnergyQuote(level) {
+  var i = Math.max(1, Math.min(5, parseInt(level, 10) || 1)) - 1;
+  return ENERGY_QUOTES[i] || ENERGY_QUOTES[2];
+}
+
+var FEED_PAGE_SIZE = 10;
+var FEED_INITIAL_SIZE = 15;
+var activityFeedLimit = FEED_INITIAL_SIZE;
+
+function getFeedItems(limit) {
+  var items = [];
+  var log = state.feedLog || [];
+  log.forEach(function (entry) {
+    items.push({
+      date: entry.date,
+      time: entry.time || "",
+      type: entry.type || "habit",
+      label: entry.label || "",
+      detail: entry.detail || "",
+      sortKey: (entry.date || "") + " " + (entry.time || "23:59"),
+    });
+  });
+  var completions = state.habitCompletions || {};
+  var habitNames = {};
+  (state.habits || []).forEach(function (h) { habitNames[h.id] = h.name; });
+  Object.keys(completions).sort().reverse().forEach(function (date) {
+    var map = completions[date] || {};
+    Object.keys(map).forEach(function (habitId) {
+      if (!map[habitId]) return;
+      items.push({
+        date: date,
+        time: "",
+        type: "habit",
+        label: habitNames[habitId] || "Habit",
+        detail: "Completed",
+        sortKey: date + " 12:00",
+      });
+    });
+  });
+  (state.people || []).forEach(function (p) {
+    var txs = (p.ledger && p.ledger.transactions) ? p.ledger.transactions : [];
+    txs.forEach(function (tx) {
+      var d = tx.date || "";
+      var amt = Number(tx.amount);
+      var detail = (tx.description || "").trim();
+      if (detail && !isNaN(amt) && amt !== 0) detail += " · " + formatCurrency(amt);
+      else if (!detail && !isNaN(amt)) detail = formatCurrency(amt);
+      items.push({
+        date: d,
+        time: "",
+        type: "person",
+        label: p.name || "Person",
+        detail: detail || "—",
+        sortKey: d + " 12:00",
+      });
+    });
+  });
+  items.sort(function (a, b) { return (b.sortKey || "").localeCompare(a.sortKey || ""); });
+  return items.slice(0, limit);
+}
+
 function formatCurrency(n, currency) {
   if (isNaN(n)) n = 0;
   const sym = CURRENCY_SYMBOLS[currency || profile.currency] || (currency || profile.currency) + " ";
@@ -304,11 +379,86 @@ function setupAvatar() {
   });
 }
 
+// Flow mapping: bottom nav (today, growth, circle, finance) <-> tab (dashboard, habits, people, finance)
+const FLOW_TO_TAB = { today: "dashboard", growth: "habits", circle: "people", finance: "finance" };
+const TAB_TO_FLOW = { dashboard: "today", habits: "growth", people: "circle", finance: "finance" };
+
+function switchToFlowView(flow) {
+  const tab = FLOW_TO_TAB[flow];
+  if (tab) switchToTab(tab);
+  document.querySelectorAll(".flow-nav-item").forEach((btn) => {
+    btn.setAttribute("aria-current", btn.dataset.flow === flow ? "true" : "false");
+  });
+}
+
+function syncFlowNavFromTab(tab) {
+  const flow = TAB_TO_FLOW[tab];
+  if (flow) {
+    document.querySelectorAll(".flow-nav-item").forEach((btn) => {
+      btn.setAttribute("aria-current", btn.dataset.flow === flow ? "true" : "false");
+    });
+  }
+}
+
 // Tabs
 function switchToTab(tab) {
   document.querySelectorAll(".nav-link").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     panel.classList.toggle("active", panel.id === `tab-${tab}`);
+  });
+  syncFlowNavFromTab(tab);
+  closeMobileNav();
+}
+
+function closeMobileNav() {
+  const nav = document.getElementById("top-nav");
+  const menu = document.getElementById("nav-menu");
+  const toggle = document.getElementById("nav-toggle");
+  if (nav) nav.classList.remove("nav-open");
+  if (menu) {
+    menu.classList.remove("is-open");
+    menu.style.display = "";
+    menu.style.visibility = "";
+    menu.style.opacity = "";
+    menu.style.pointerEvents = "";
+  }
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open menu");
+  }
+}
+
+function toggleUtilityMenu(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const menu = document.getElementById("nav-menu");
+  const toggle = document.getElementById("nav-toggle");
+  const nav = document.getElementById("top-nav");
+  if (!menu || !toggle) return;
+  const isOpen = !menu.classList.contains("is-open");
+  menu.classList.toggle("is-open", isOpen);
+  if (nav) nav.classList.toggle("nav-open", isOpen);
+  menu.style.display = isOpen ? "flex" : "none";
+  menu.style.visibility = isOpen ? "visible" : "hidden";
+  menu.style.opacity = isOpen ? "1" : "0";
+  menu.style.pointerEvents = isOpen ? "auto" : "none";
+  toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  toggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+}
+window.toggleUtilityMenu = toggleUtilityMenu;
+
+function setupNavMobile() {
+  const toggle = document.getElementById("nav-toggle");
+  const menu = document.getElementById("nav-menu");
+  if (!toggle || !menu) return;
+  document.addEventListener("click", function (e) {
+    if (!menu.classList.contains("is-open")) return;
+    if (!toggle.contains(e.target) && !menu.contains(e.target)) closeMobileNav();
+  });
+  window.addEventListener("resize", function () {
+    if (window.matchMedia("(min-width: 769px)").matches) closeMobileNav();
   });
 }
 
@@ -319,6 +469,178 @@ function setupTabs() {
       if (el.dataset.tab) switchToTab(el.dataset.tab);
     });
   });
+  document.querySelectorAll("[data-flow]").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (el.dataset.flow) switchToFlowView(el.dataset.flow);
+    });
+  });
+}
+
+function setupFlowNav() {
+  document.querySelectorAll(".flow-nav-item").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      if (this.dataset.flow) switchToFlowView(this.dataset.flow);
+    });
+  });
+}
+
+function setupQuickLog() {
+  const overlay = document.getElementById("quick-log-overlay");
+  const openBtn = document.getElementById("flow-quick-log-btn");
+  const closeBtn = document.getElementById("quick-log-close");
+  const options = document.querySelectorAll(".quick-log-opt");
+  const formHabit = document.getElementById("quick-log-form-habit");
+  const formFinance = document.getElementById("quick-log-form-finance");
+  const formPerson = document.getElementById("quick-log-form-person");
+  const habitList = document.getElementById("quick-log-habit-list");
+  const personSelect = document.getElementById("quick-log-person-select");
+
+  function showOptions() {
+    formHabit.classList.add("hidden");
+    formFinance.classList.add("hidden");
+    formPerson.classList.add("hidden");
+  }
+  function openModal() {
+    showOptions();
+    overlay.classList.remove("hidden");
+  }
+  function closeModal() {
+    overlay.classList.add("hidden");
+  }
+
+  if (openBtn) openBtn.addEventListener("click", openModal);
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  options.forEach((btn) => {
+    btn.addEventListener("click", function () {
+      showOptions();
+      const q = this.dataset.quick;
+      if (q === "habit") {
+        if (habitList) {
+          habitList.innerHTML = "";
+          const todayMap = state.habitCompletions[todayStr()] || {};
+          state.habits.slice(0, 8).forEach((h) => {
+            const done = !!todayMap[h.id];
+            const li = document.createElement("li");
+            li.innerHTML = `<input type="checkbox" data-habit-id="${h.id}" ${done ? "checked" : ""} /><span>${h.name}</span>`;
+            habitList.appendChild(li);
+          });
+          if (state.habits.length === 0) habitList.innerHTML = "<li class=\"quick-log-empty\">No habits yet. Add one in Growth.</li>";
+        }
+        formHabit.classList.remove("hidden");
+      } else if (q === "finance") {
+        document.getElementById("quick-log-amount").value = "";
+        document.getElementById("quick-log-finance-note").value = "";
+        formFinance.classList.remove("hidden");
+      } else if (q === "person") {
+        if (personSelect) {
+          personSelect.innerHTML = state.people.length ? state.people.map((p) => `<option value="${p.id}">${p.name}</option>`).join("") : "<option value=\"\">No people yet</option>";
+        }
+        document.getElementById("quick-log-person-note").value = "";
+        formPerson.classList.remove("hidden");
+      }
+    });
+  });
+
+  const saveHabitBtn = document.getElementById("quick-log-habit-save");
+  if (saveHabitBtn && habitList) {
+    saveHabitBtn.addEventListener("click", function () {
+      habitList.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+        const id = cb.dataset.habitId;
+        const checked = cb.checked;
+        const key = todayStr();
+        if (!state.habitCompletions[key]) state.habitCompletions[key] = {};
+        if (state.habitCompletions[key][id] !== checked) {
+          state.habitCompletions[key][id] = checked;
+        }
+      });
+      saveState();
+      state.feedLog = state.feedLog || [];
+      state.feedLog.push({
+        type: "habit",
+        date: todayStr(),
+        time: new Date().toTimeString().slice(0, 5),
+        label: "Habits",
+        detail: "Checked off",
+      });
+      if (state.feedLog.length > 500) state.feedLog = state.feedLog.slice(-500);
+      saveState();
+      renderDashboard();
+      renderHabits();
+      renderDailySnapshot();
+      renderActivityFeed();
+      closeModal();
+      showSavedToast("SAVED");
+    });
+  }
+
+  const saveFinanceBtn = document.getElementById("quick-log-finance-save");
+  if (saveFinanceBtn) {
+    saveFinanceBtn.addEventListener("click", function () {
+      const amount = Number(document.getElementById("quick-log-amount").value) || 0;
+      const note = (document.getElementById("quick-log-finance-note").value || "").trim();
+      if (state.debts.length > 0 && amount > 0) {
+        const d = state.debts[0];
+        const paid = Number(d.paid) || 0;
+        d.paid = paid + amount;
+        state.feedLog = state.feedLog || [];
+        state.feedLog.push({
+          type: "finance",
+          date: todayStr(),
+          time: new Date().toTimeString().slice(0, 5),
+          label: "Payment",
+          detail: formatCurrency(amount) + (note ? " · " + note : ""),
+        });
+        if (state.feedLog.length > 500) state.feedLog = state.feedLog.slice(-500);
+        saveState();
+        renderFinances();
+        renderDashboard();
+        renderActivityFeed();
+        closeModal();
+        showSavedToast("PAYMENT LOGGED");
+      } else if (state.debts.length === 0) {
+        showSaveError("Add a debt in Finance first to log payments.");
+      } else {
+        showSaveError("Enter an amount.");
+      }
+    });
+  }
+
+  const savePersonBtn = document.getElementById("quick-log-person-save");
+  if (savePersonBtn && personSelect) {
+    savePersonBtn.addEventListener("click", function () {
+      const personId = personSelect.value;
+      const note = (document.getElementById("quick-log-person-note").value || "").trim();
+      if (!personId || !note) {
+        showSaveError("Select a person and enter a note.");
+        return;
+      }
+      const p = state.people.find((x) => x.id === personId);
+      if (p) {
+        const line = new Date().toISOString().slice(0, 10) + ": " + note + "\n";
+        p.notes = (p.notes || "") + line;
+        state.feedLog = state.feedLog || [];
+        state.feedLog.push({
+          type: "person",
+          date: todayStr(),
+          time: new Date().toTimeString().slice(0, 5),
+          label: p.name,
+          detail: note,
+        });
+        if (state.feedLog.length > 500) state.feedLog = state.feedLog.slice(-500);
+        saveState();
+        renderPeople();
+        renderDashboard();
+        renderActivityFeed();
+        closeModal();
+        showSavedToast("NOTE SAVED");
+      }
+    });
+  }
 }
 
 // Predefined habit types with icon and description
@@ -362,17 +684,33 @@ function setupHabits() {
     });
   }
 
-  $("add-habit-btn")?.addEventListener("click", () => {
+  var habitColorSelect = $("habit-color");
+  if (habitColorSelect) {
+    habitColorSelect.innerHTML = "";
+    (COLOR_PALETTE || []).forEach(function (item) {
+      var opt = document.createElement("option");
+      opt.value = item.hex;
+      opt.textContent = item.id.charAt(0).toUpperCase() + item.id.slice(1);
+      opt.style.setProperty("--opt-color", item.hex);
+      habitColorSelect.appendChild(opt);
+    });
+  }
+
+  function openAddHabitForm() {
     $("habit-id").value = "";
     $("habit-form").reset();
     $("habit-goal").value = 5;
+    if (habitColorSelect && COLOR_PALETTE[0]) habitColorSelect.value = COLOR_PALETTE[0].hex;
     $("habit-form-panel").classList.remove("hidden");
-    $("habits-cards-list").classList.add("hidden");
-  });
+    var listEl = $("habits-cards-list");
+    if (listEl) listEl.classList.add("hidden");
+  }
+  $("add-habit-from-consistency-btn")?.addEventListener("click", openAddHabitForm);
 
   $("cancel-habit-btn")?.addEventListener("click", () => {
     $("habit-form-panel").classList.add("hidden");
-    $("habits-cards-list").classList.remove("hidden");
+    var listEl = $("habits-cards-list");
+    if (listEl) listEl.classList.remove("hidden");
   });
 
   const form = $("habit-form");
@@ -386,8 +724,16 @@ function setupHabits() {
       const goal = Number($("habit-goal").value || 0);
       if (!name) return;
 
+      const colorEl = $("habit-color");
+      const color = (colorEl && colorEl.value) || (COLOR_PALETTE[0] && COLOR_PALETTE[0].hex) || "#9caf88";
       const existingIndex = state.habits.findIndex((h) => h.id === id);
-      const habit = { id, name, description: description || name, goalPerWeek: goal > 0 ? goal : 1 };
+      const habit = {
+        id,
+        name,
+        description: description || name,
+        goalPerWeek: goal > 0 ? goal : 1,
+        color: color,
+      };
 
       if (existingIndex >= 0) {
         state.habits[existingIndex] = habit;
@@ -400,8 +746,10 @@ function setupHabits() {
       $("habit-id").value = "";
       $("habit-goal").value = 5;
       $("habit-form-panel").classList.add("hidden");
-      $("habits-cards-list").classList.remove("hidden");
+      var listEl = $("habits-cards-list");
+      if (listEl) listEl.classList.remove("hidden");
       renderHabits();
+      renderHabitHeatmap();
       renderDashboard();
     } catch (err) {
       console.error("Habit save error", err);
@@ -410,6 +758,26 @@ function setupHabits() {
   }
   form.addEventListener("submit", handleHabitSave);
   form.querySelector('button[type="submit"]')?.addEventListener("click", (e) => { e.preventDefault(); handleHabitSave(null); });
+
+  var heatmapWrap = document.getElementById("habit-heatmap-grid-wrap");
+  if (heatmapWrap && !heatmapWrap.dataset.delegationBound) {
+    heatmapWrap.dataset.delegationBound = "1";
+    heatmapWrap.addEventListener("click", function (e) {
+      var edit = e.target.closest("[data-action=\"edit-habit\"]");
+      if (edit && edit.dataset.habitId) {
+        e.preventDefault();
+        editHabit(edit.dataset.habitId);
+        return;
+      }
+      var del = e.target.closest("[data-action=\"delete-habit\"]");
+      if (del && del.dataset.habitId) {
+        e.preventDefault();
+        if (confirm("Delete this habit? Completions will be removed.")) {
+          deleteHabit(del.dataset.habitId);
+        }
+      }
+    });
+  }
 }
 
 function toggleHabitToday(habitId) {
@@ -431,6 +799,7 @@ function deleteHabit(id) {
   });
   saveState();
   renderHabits();
+  renderHabitHeatmap();
   renderDashboard();
 }
 
@@ -441,8 +810,11 @@ function editHabit(id) {
   $("habit-name").value = habit.name;
   $("habit-description").value = habit.description || "";
   $("habit-goal").value = habit.goalPerWeek;
+  var colorEl = $("habit-color");
+  if (colorEl && habit.color) colorEl.value = habit.color;
   $("habit-form-panel").classList.remove("hidden");
-  $("habits-cards-list").classList.add("hidden");
+  var listEl = $("habits-cards-list");
+  if (listEl) listEl.classList.add("hidden");
 }
 
 function getProgressGridDates(weeks = 5) {
@@ -476,6 +848,305 @@ function getHabitWeekProgress(habit) {
   const goal = Math.min(7, Math.max(1, Number(habit.goalPerWeek) || 5));
   const completed = weekDates.filter((d) => state.habitCompletions[d]?.[habit.id]).length;
   return goal > 0 ? Math.min(100, Math.round((completed / goal) * 100)) : 0;
+}
+
+/** 0 = none, 1 = some habits done, 2 = perfect day (all habits done). */
+function getDayLevel(dateKey) {
+  var total = (state.habits || []).length;
+  if (!total) return 0;
+  var map = state.habitCompletions[dateKey] || {};
+  var done = (state.habits || []).filter(function (h) { return !!map[h.id]; }).length;
+  if (done === 0) return 0;
+  return done >= total ? 2 : 1;
+}
+
+/** Last N days, oldest first (left to right = past to today). */
+function getHeatmapDates(weeks) {
+  weeks = weeks || 12;
+  var today = new Date();
+  var dates = [];
+  for (var i = weeks * 7 - 1; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+/** 365 days for horizontal year view (oldest first). */
+function getHeatmapDates365() {
+  var today = new Date();
+  var dates = [];
+  for (var i = 364; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+/** GitHub-style grid: 7 rows (Sun–Sat) × 53 weeks. Returns { grid, monthLabels }.
+ *  grid[row][col] = dateKey or null. row=0 is Sunday, col=0 is oldest week. */
+function getHeatmapGrid365() {
+  var today = new Date();
+  var grid = [];
+  var weekCols = 53;
+  for (var r = 0; r < 7; r++) grid[r] = [];
+  for (var c = 0; c < weekCols; c++) {
+    for (var r = 0; r < 7; r++) grid[r][c] = null;
+  }
+  var monthLabels = [];
+  var lastMonth = -1;
+  for (var i = 0; i < 365; i++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - (364 - i));
+    var dateKey = d.toISOString().slice(0, 10);
+    var weekIndex = Math.floor(i / 7);
+    var dayOfWeek = d.getDay();
+    grid[dayOfWeek][weekIndex] = dateKey;
+    var m = d.getMonth();
+    if (m !== lastMonth) {
+      monthLabels.push({ weekIndex: weekIndex, label: d.toLocaleString("en", { month: "short" }) });
+      lastMonth = m;
+    }
+  }
+  return { grid: grid, monthLabels: monthLabels };
+}
+
+/** Week view: 1 row × 7 cols (last 7 days, Mon–Sun). */
+function getHeatmapGridWeek() {
+  var today = new Date();
+  var grid = [[]];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - i);
+    grid[0].push(d.toISOString().slice(0, 10));
+  }
+  return { grid: grid, monthLabels: [], rows: 1, cols: 7 };
+}
+
+/** Month view: 7 rows (Sun–Sat) × 4 cols (4 weeks). */
+function getHeatmapGridMonth() {
+  var today = new Date();
+  var grid = [];
+  var cols = 4;
+  for (var r = 0; r < 7; r++) grid[r] = [];
+  for (var c = 0; c < cols; c++) {
+    for (var r = 0; r < 7; r++) grid[r][c] = null;
+  }
+  for (var i = 0; i < 28; i++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - (27 - i));
+    var dateKey = d.toISOString().slice(0, 10);
+    var weekIndex = Math.floor(i / 7);
+    var dayOfWeek = d.getDay();
+    grid[dayOfWeek][weekIndex] = dateKey;
+  }
+  return { grid: grid, monthLabels: [], rows: 7, cols: cols };
+}
+
+var DAY_ABBREV = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+var HEATMAP_RANGE_KEY = "habitHeatmapRange";
+
+function getHeatmapRange() {
+  try {
+    var s = localStorage.getItem(HEATMAP_RANGE_KEY);
+    if (s === "week" || s === "month" || s === "year") return s;
+  } catch (e) {}
+  return "month";
+}
+
+function setHeatmapRange(range) {
+  try {
+    localStorage.setItem(HEATMAP_RANGE_KEY, range);
+  } catch (e) {}
+}
+
+/** Returns { grid, monthLabels, rows, cols, label } for the given range. */
+function getHeatmapData(range) {
+  if (range === "week") {
+    var w = getHeatmapGridWeek();
+    return { grid: w.grid, monthLabels: [], rows: 1, cols: 7, label: "Last 7 days" };
+  }
+  if (range === "month") {
+    var m = getHeatmapGridMonth();
+    return { grid: m.grid, monthLabels: [], rows: 7, cols: m.cols, label: "Last 4 weeks" };
+  }
+  var y = getHeatmapGrid365();
+  return { grid: y.grid, monthLabels: y.monthLabels, rows: 7, cols: 53, label: "Last 365 days" };
+}
+
+function renderHabitHeatmap() {
+  var wrap = document.getElementById("habit-heatmap-grid-wrap");
+  if (!wrap) return;
+  var habits = state.habits || [];
+  var range = getHeatmapRange();
+  var data = getHeatmapData(range);
+  var grid = data.grid;
+  var monthLabels = data.monthLabels || [];
+  var rows = data.rows;
+  var cols = data.cols;
+  var rangeLabel = data.label;
+
+  wrap.innerHTML = "";
+  if (habits.length === 0) {
+    wrap.innerHTML = "<p class=\"habit-heatmap-empty\">Add habits to see your consistency.</p>";
+    return;
+  }
+
+  var cardParent = wrap.closest(".habit-heatmap-card");
+  var body = cardParent && cardParent.querySelector(".habit-consistency-body");
+  var existingRange = cardParent && cardParent.querySelector(".habit-heatmap-range-selector");
+  if (body && !existingRange) {
+    var rangeSelector = document.createElement("div");
+    rangeSelector.className = "habit-heatmap-range-selector";
+    rangeSelector.setAttribute("role", "tablist");
+    rangeSelector.setAttribute("aria-label", "Heatmap view");
+    ["week", "month", "year"].forEach(function (r) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "habit-heatmap-range-btn" + (r === range ? " active" : "");
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", r === range ? "true" : "false");
+      btn.dataset.range = r;
+      btn.textContent = r === "week" ? "Week" : r === "month" ? "Month" : "Year";
+      rangeSelector.appendChild(btn);
+    });
+    body.insertBefore(rangeSelector, body.firstChild);
+    rangeSelector.querySelectorAll(".habit-heatmap-range-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var r = btn.dataset.range;
+        if (!r) return;
+        setHeatmapRange(r);
+        renderHabitHeatmap();
+      });
+    });
+  } else if (existingRange) {
+    existingRange.querySelectorAll(".habit-heatmap-range-btn").forEach(function (btn) {
+      var r = btn.dataset.range;
+      btn.classList.toggle("active", r === range);
+      btn.setAttribute("aria-selected", r === range ? "true" : "false");
+    });
+  }
+
+  habits.forEach(function (habit) {
+    var card = document.createElement("div");
+    card.className = "habit-consistency-card habit-consistency-card--" + range;
+    var header = document.createElement("div");
+    header.className = "habit-consistency-card-header";
+    var swatch = document.createElement("span");
+    swatch.className = "habit-consistency-swatch";
+    swatch.style.backgroundColor = habit.color || "#9caf88";
+    var titleWrap = document.createElement("div");
+    titleWrap.className = "habit-consistency-title-wrap";
+    var title = document.createElement("span");
+    title.className = "habit-consistency-title";
+    title.textContent = habit.name || "";
+    var subtitle = document.createElement("span");
+    subtitle.className = "habit-consistency-subtitle";
+    subtitle.textContent = "Daily";
+    titleWrap.appendChild(title);
+    titleWrap.appendChild(subtitle);
+    var streakNum = getHabitStreak(habit.id);
+    var streakStr = streakNum === 1 ? "1 day" : streakNum + " days";
+    var meta = document.createElement("div");
+    meta.className = "habit-consistency-meta";
+    meta.innerHTML = "<span class=\"habit-consistency-streak\" title=\"Streak\">\uD83D\uDD25 " + streakNum + "</span>";
+    var actions = document.createElement("div");
+    actions.className = "habit-consistency-actions";
+    var editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "habit-consistency-icon";
+    editBtn.setAttribute("data-action", "edit-habit");
+    editBtn.setAttribute("data-habit-id", habit.id);
+    editBtn.setAttribute("aria-label", "Edit " + (habit.name || "habit"));
+    editBtn.textContent = "\u270F\uFE0F";
+    var deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "habit-consistency-icon habit-consistency-icon-delete";
+    deleteBtn.setAttribute("data-action", "delete-habit");
+    deleteBtn.setAttribute("data-habit-id", habit.id);
+    deleteBtn.setAttribute("aria-label", "Delete " + (habit.name || "habit"));
+    deleteBtn.textContent = "\uD83D\uDDD1\uFE0F";
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    header.appendChild(swatch);
+    header.appendChild(titleWrap);
+    header.appendChild(meta);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    var heatWrap = document.createElement("div");
+    heatWrap.className = "habit-consistency-heat-wrap";
+    heatWrap.style.setProperty("--cols", cols);
+    heatWrap.style.setProperty("--rows", rows);
+    var topRow = document.createElement("div");
+    topRow.className = "habit-consistency-top-row";
+    var labelSpan = document.createElement("span");
+    labelSpan.className = "habit-consistency-label";
+    labelSpan.textContent = rangeLabel;
+    topRow.appendChild(labelSpan);
+    if (monthLabels.length > 0) {
+      var spacer = document.createElement("div");
+      spacer.className = "habit-consistency-top-spacer";
+      topRow.appendChild(spacer);
+      var monthRow = document.createElement("div");
+      monthRow.className = "habit-consistency-month-row";
+      monthLabels.forEach(function (o) {
+        var span = document.createElement("span");
+        span.className = "habit-consistency-month";
+        span.style.gridColumn = (o.weekIndex + 1);
+        span.textContent = o.label;
+        monthRow.appendChild(span);
+      });
+      topRow.appendChild(monthRow);
+    }
+    var legendWrap = document.createElement("div");
+    legendWrap.className = "habit-consistency-legend";
+    legendWrap.innerHTML = "<span class=\"habit-consistency-legend-item\"><span class=\"habit-consistency-legend-swatch\" style=\"background:var(--warm-gray-pale)\"></span>Skip</span><span class=\"habit-consistency-legend-item\"><span class=\"habit-consistency-legend-swatch\" style=\"background:" + (habit.color || "#9caf88") + "\"></span>Done</span>";
+    topRow.appendChild(legendWrap);
+    heatWrap.appendChild(topRow);
+
+    var gridWrap = document.createElement("div");
+    gridWrap.className = "habit-consistency-grid-wrap";
+    if (rows > 1) {
+      var dayLabels = document.createElement("div");
+      dayLabels.className = "habit-consistency-day-labels";
+      for (var r = 0; r < rows; r++) {
+        var d = document.createElement("span");
+        d.className = "habit-consistency-day-label";
+        d.textContent = DAY_ABBREV[r] || "";
+        dayLabels.appendChild(d);
+      }
+      gridWrap.appendChild(dayLabels);
+    }
+    var gridEl = document.createElement("div");
+    gridEl.className = "habit-consistency-grid";
+    gridEl.style.setProperty("--cols", cols);
+    gridEl.style.setProperty("--rows", rows);
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var dateKey = grid[r] && grid[r][c];
+        var cell = document.createElement("div");
+        cell.className = "habit-consistency-cell";
+        if (dateKey) {
+          var completed = !!(state.habitCompletions[dateKey] && state.habitCompletions[dateKey][habit.id]);
+          cell.classList.add(completed ? "done" : "skip");
+          cell.style.backgroundColor = completed ? (habit.color || "#9caf88") : "";
+          cell.setAttribute("data-date", dateKey);
+          cell.setAttribute("title", dateKey + (completed ? " — done" : " — skipped"));
+        } else {
+          cell.classList.add("empty");
+        }
+        gridEl.appendChild(cell);
+      }
+    }
+    gridWrap.appendChild(gridEl);
+    heatWrap.appendChild(gridWrap);
+    card.appendChild(heatWrap);
+    wrap.appendChild(card);
+  });
 }
 
 function renderHabits() {
@@ -586,8 +1257,10 @@ function renderDailySnapshot() {
   const energyVal = state.energyLog[todayKey] != null ? state.energyLog[todayKey] : 3;
   const energySlider = $("snapshot-energy-slider");
   const energyValueEl = $("snapshot-energy-value");
+  const energyQuoteEl = $("snapshot-energy-quote");
   if (energySlider) energySlider.value = energyVal;
   if (energyValueEl) energyValueEl.textContent = energyVal;
+  if (energyQuoteEl) energyQuoteEl.textContent = getEnergyQuote(energyVal);
 
   const trendEl = $("snapshot-energy-trend");
   if (trendEl) {
@@ -631,30 +1304,7 @@ function renderDailySnapshot() {
   const deepworkTargetInput = $("snapshot-deepwork-target-input");
   if (deepworkTargetInput) deepworkTargetInput.value = target;
 
-  const insightInput = $("snapshot-insight-input");
-  if (insightInput) insightInput.value = state.insightLog[todayKey] || "";
-
-  const momentumBar = $("snapshot-momentum-bar");
-  const momentumLegend = $("snapshot-momentum-legend");
-  if (momentumBar) {
-    momentumBar.innerHTML = "";
-    const todayMap = state.habitCompletions[todayKey] || {};
-    state.habits.forEach((h) => {
-      const done = !!todayMap[h.id];
-      const sq = document.createElement("span");
-      sq.className = "momentum-square" + (done ? " done" : "");
-      sq.setAttribute("title", h.name + (done ? " — done" : " — not done"));
-      sq.setAttribute("aria-label", h.name + (done ? ", completed" : ", not completed"));
-      momentumBar.appendChild(sq);
-    });
-  }
-  if (momentumLegend) {
-    const todayMap = state.habitCompletions[todayKey] || {};
-    const done = state.habits.filter((h) => !!todayMap[h.id]).length;
-    momentumLegend.textContent = state.habits.length
-      ? done + " / " + state.habits.length + " habits completed today"
-      : "No habits yet — add habits below.";
-  }
+  renderHabitHeatmap();
 }
 
 function setupDailySnapshot() {
@@ -667,6 +1317,8 @@ function setupDailySnapshot() {
       state.energyLog[todayStr()] = v;
       saveState();
       if ($("snapshot-energy-value")) $("snapshot-energy-value").textContent = v;
+      var qEl = $("snapshot-energy-quote");
+      if (qEl) qEl.textContent = getEnergyQuote(v);
       const trendEl = $("snapshot-energy-trend");
       if (trendEl) {
         const last7 = getLast7Days();
@@ -711,24 +1363,6 @@ function setupDailySnapshot() {
       state.deepWorkTarget = isNaN(v) ? 2 : Math.max(0.5, v);
       saveState();
       renderDailySnapshot();
-    });
-  }
-
-  const insightInput = $("snapshot-insight-input");
-  if (insightInput) {
-    insightInput.addEventListener("blur", function () {
-      state.insightLog[todayStr()] = insightInput.value.trim();
-      saveState();
-    });
-  }
-
-  const snapshotAiBtn = $("snapshot-generate-insight-btn");
-  if (snapshotAiBtn) {
-    snapshotAiBtn.addEventListener("click", function () {
-      runAIGenerateInsight(snapshotAiBtn, function () {
-        if (insightInput) insightInput.value = state.insightLog[todayStr()] || "";
-        renderDailySnapshot();
-      });
     });
   }
 
@@ -1172,7 +1806,6 @@ function setupPeople() {
     }
   }
   form.addEventListener("submit", handlePersonSave);
-  form.querySelector('button[type="submit"]')?.addEventListener("click", (e) => { e.preventDefault(); handlePersonSave(null); });
 
   var addToCircleModal = $("add-to-circle-modal");
   var addToCircleFormWrap = $("add-to-circle-form-wrap");
@@ -1482,6 +2115,201 @@ function renderPeople() {
   });
 }
 
+// ——— Focus Sphere (Deep Work Timer) ———
+var focusSession = null;
+var focusTickInterval = null;
+var focusLastCompleted = null;
+var FOCUS_SWEEP_CIRCUM = 2 * Math.PI * 56;
+
+function focusShowView(viewId) {
+  ["focus-view-idle", "focus-view-running", "focus-view-paused", "focus-view-celebrating", "focus-view-report"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", id !== viewId);
+  });
+}
+
+function focusUpdateSweep(elId, elapsed, total) {
+  if (!total) return;
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var filled = (elapsed / total) * FOCUS_SWEEP_CIRCUM;
+  el.setAttribute("stroke-dasharray", filled.toFixed(2) + " " + FOCUS_SWEEP_CIRCUM.toFixed(2));
+}
+
+function focusFormatTime(seconds) {
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+function focusTick() {
+  if (!focusSession || !focusSession.isRunning) return;
+  focusSession.remainingSeconds--;
+  if (focusSession.remainingSeconds <= 0) {
+    focusSession.remainingSeconds = 0;
+    focusCompleteSession();
+    return;
+  }
+  var elapsed = focusSession.totalSeconds - focusSession.remainingSeconds;
+  var runningEl = document.getElementById("focus-time-running");
+  if (runningEl) runningEl.textContent = focusFormatTime(focusSession.remainingSeconds);
+  focusUpdateSweep("focus-sphere-sweep", elapsed, focusSession.totalSeconds);
+  try { sessionStorage.setItem("focusSession", JSON.stringify(focusSession)); } catch (e) {}
+}
+
+function focusCompleteSession() {
+  if (focusTickInterval) {
+    clearInterval(focusTickInterval);
+    focusTickInterval = null;
+  }
+  var minutes = Math.round((focusSession.totalSeconds - focusSession.remainingSeconds) / 60);
+  var todayKey = todayStr();
+  state.deepWorkLog[todayKey] = (Number(state.deepWorkLog[todayKey]) || 0) + minutes / 60;
+  saveState();
+  focusLastCompleted = { minutes: minutes, objective: focusSession.objective || "your focus" };
+  focusSession = null;
+  try { sessionStorage.removeItem("focusSession"); } catch (e) {}
+  focusShowView("focus-view-celebrating");
+  var celebrateEl = document.getElementById("focus-sphere-celebrate");
+  if (celebrateEl) celebrateEl.classList.add("focus-sphere-circle--bloom");
+  var timeCelebrate = document.getElementById("focus-time-celebrate");
+  if (timeCelebrate) timeCelebrate.textContent = "00:00";
+  setTimeout(function () {
+    if (celebrateEl) celebrateEl.classList.remove("focus-sphere-circle--bloom");
+    var msgEl = document.getElementById("focus-report-message");
+    if (msgEl && focusLastCompleted) {
+      var obj = focusLastCompleted.objective && focusLastCompleted.objective !== "your focus" ? focusLastCompleted.objective : "your focus";
+      msgEl.textContent = "You just invested " + focusLastCompleted.minutes + " minutes into " + obj + ".";
+    }
+    focusShowView("focus-view-report");
+    if (typeof renderDailySnapshot === "function") renderDailySnapshot();
+  }, 2000);
+}
+
+function focusStartSession() {
+  var durationSelect = document.getElementById("focus-duration-select");
+  var objectiveInput = document.getElementById("focus-objective-input");
+  var duration = durationSelect ? parseInt(durationSelect.value, 10) || 45 : 45;
+  var totalSeconds = duration * 60;
+  var objective = (objectiveInput && objectiveInput.value && objectiveInput.value.trim()) || "Deep work";
+  focusSession = {
+    durationMinutes: duration,
+    totalSeconds: totalSeconds,
+    remainingSeconds: totalSeconds,
+    objective: objective,
+    isRunning: true,
+    isPaused: false,
+  };
+  var runningObj = document.getElementById("focus-objective-running");
+  if (runningObj) runningObj.textContent = objective;
+  var pausedObj = document.getElementById("focus-objective-paused");
+  if (pausedObj) pausedObj.textContent = objective;
+  document.getElementById("focus-time-running").textContent = focusFormatTime(totalSeconds);
+  document.getElementById("focus-time-paused").textContent = focusFormatTime(totalSeconds);
+  focusUpdateSweep("focus-sphere-sweep", 0, totalSeconds);
+  focusUpdateSweep("focus-sphere-sweep-paused", 0, totalSeconds);
+  focusShowView("focus-view-running");
+  focusTickInterval = setInterval(focusTick, 1000);
+  try { sessionStorage.setItem("focusSession", JSON.stringify(focusSession)); } catch (e) {}
+}
+
+function focusPauseSession() {
+  if (!focusSession) return;
+  focusSession.isRunning = false;
+  focusSession.isPaused = true;
+  if (focusTickInterval) {
+    clearInterval(focusTickInterval);
+    focusTickInterval = null;
+  }
+  var elapsed = focusSession.totalSeconds - focusSession.remainingSeconds;
+  focusUpdateSweep("focus-sphere-sweep-paused", elapsed, focusSession.totalSeconds);
+  var pausedTime = document.getElementById("focus-time-paused");
+  if (pausedTime) pausedTime.textContent = focusFormatTime(focusSession.remainingSeconds);
+  focusShowView("focus-view-paused");
+  try { sessionStorage.setItem("focusSession", JSON.stringify(focusSession)); } catch (e) {}
+}
+
+function focusResumeSession() {
+  if (!focusSession || !focusSession.isPaused) return;
+  focusSession.isRunning = true;
+  focusSession.isPaused = false;
+  focusShowView("focus-view-running");
+  var runningTime = document.getElementById("focus-time-running");
+  if (runningTime) runningTime.textContent = focusFormatTime(focusSession.remainingSeconds);
+  var elapsed = focusSession.totalSeconds - focusSession.remainingSeconds;
+  focusUpdateSweep("focus-sphere-sweep", elapsed, focusSession.totalSeconds);
+  focusTickInterval = setInterval(focusTick, 1000);
+  try { sessionStorage.setItem("focusSession", JSON.stringify(focusSession)); } catch (e) {}
+}
+
+function focusResetSession() {
+  if (focusTickInterval) {
+    clearInterval(focusTickInterval);
+    focusTickInterval = null;
+  }
+  focusSession = null;
+  try { sessionStorage.removeItem("focusSession"); } catch (e) {}
+  var idleTime = document.getElementById("focus-time-idle");
+  if (idleTime) idleTime.textContent = document.getElementById("focus-duration-select").value ? document.getElementById("focus-duration-select").value + ":00" : "45:00";
+  focusShowView("focus-view-idle");
+}
+
+function initFocusSphere() {
+  var btnStart = document.getElementById("focus-btn-start");
+  var btnPause = document.getElementById("focus-btn-pause");
+  var btnReset = document.getElementById("focus-btn-reset");
+  var btnNext = document.getElementById("focus-btn-next-block");
+  var btnBreak = document.getElementById("focus-btn-break");
+  if (btnStart) btnStart.addEventListener("click", function () { focusStartSession(); });
+  if (btnPause) btnPause.addEventListener("click", function () { focusPauseSession(); });
+  if (btnReset) btnReset.addEventListener("click", function () { focusResetSession(); });
+  if (btnNext) {
+    btnNext.addEventListener("click", function () {
+      var objInput = document.getElementById("focus-objective-input");
+      if (objInput && focusLastCompleted && focusLastCompleted.objective && focusLastCompleted.objective !== "your focus") objInput.value = focusLastCompleted.objective;
+      focusLastCompleted = null;
+      focusStartSession();
+    });
+  }
+  if (btnBreak) {
+    btnBreak.addEventListener("click", function () {
+      focusLastCompleted = null;
+      focusShowView("focus-view-idle");
+      var durationSelect = document.getElementById("focus-duration-select");
+      if (durationSelect) durationSelect.value = "15";
+      var idleTime = document.getElementById("focus-time-idle");
+      if (idleTime) idleTime.textContent = "15:00";
+    });
+  }
+  try {
+    var saved = sessionStorage.getItem("focusSession");
+    if (saved) {
+      focusSession = JSON.parse(saved);
+      if (focusSession && focusSession.remainingSeconds > 0) {
+        if (focusSession.isRunning) {
+          focusResumeSession();
+        } else {
+          var elapsed = focusSession.totalSeconds - focusSession.remainingSeconds;
+          focusUpdateSweep("focus-sphere-sweep-paused", elapsed, focusSession.totalSeconds);
+          document.getElementById("focus-time-paused").textContent = focusFormatTime(focusSession.remainingSeconds);
+          var po = document.getElementById("focus-objective-paused");
+          if (po) po.textContent = focusSession.objective || "";
+          focusShowView("focus-view-paused");
+        }
+        return;
+      }
+    }
+  } catch (e) {}
+  var durationSelect = document.getElementById("focus-duration-select");
+  if (durationSelect) {
+    durationSelect.addEventListener("change", function () {
+      var v = durationSelect.value;
+      var idleTime = document.getElementById("focus-time-idle");
+      if (idleTime && !focusSession) idleTime.textContent = (v || "45") + ":00";
+    });
+  }
+}
+
 // Dashboard: GUI preset – habits checklist, financial snapshot, appointments preview
 function renderDashboard() {
   renderSubtleStatsBar("subtle-stats-dashboard", "subtle-stats-dashboard-text", "subtle-stats-dashboard-chart");
@@ -1530,14 +2358,6 @@ function renderDashboard() {
         habitsList.appendChild(li);
       });
     }
-  }
-
-  // Daily Insight widget (same data as Habit Tracker → Daily Insights)
-  const insightTextEl = $("dashboard-daily-insight-text");
-  if (insightTextEl) {
-    const insightToday = (state.insightLog && state.insightLog[todayKey]) ? state.insightLog[todayKey].trim() : "";
-    insightTextEl.textContent = insightToday || "What did you learn today? Add one in Habit Tracker.";
-    insightTextEl.classList.toggle("dashboard-daily-insight-empty", !insightToday);
   }
 
   // Card 2: Financial snapshot
@@ -1687,6 +2507,85 @@ function renderDashboard() {
   }
 
   if (typeof renderLifeTotals === "function") renderLifeTotals();
+  if (typeof renderActivityFeed === "function") renderActivityFeed();
+}
+
+function formatFeedDate(dateStr) {
+  if (!dateStr) return "";
+  var d = new Date(dateStr + "T12:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return (days[d.getDay()] || "") + ", " + (months[d.getMonth()] || "") + " " + d.getDate();
+}
+
+function renderActivityFeed() {
+  var listEl = document.getElementById("activity-feed-list");
+  if (!listEl) return;
+  var items = getFeedItems(activityFeedLimit);
+  listEl.innerHTML = "";
+  if (items.length === 0) {
+    listEl.innerHTML = '<p class="activity-feed-empty">No recent activity. Use the + button to log habits, payments, or person notes.</p>';
+    return;
+  }
+  var lastDate = "";
+  items.forEach(function (item) {
+    if (item.date !== lastDate) {
+      lastDate = item.date;
+      var header = document.createElement("div");
+      header.className = "activity-feed-date-header";
+      header.setAttribute("data-feed-date", item.date);
+      header.textContent = formatFeedDate(item.date);
+      listEl.appendChild(header);
+    }
+    var card = document.createElement("div");
+    card.className = "activity-feed-card activity-feed-card--" + (item.type || "habit");
+    var timeLabel = item.time ? item.time + " • " : "";
+    var typeLabel = item.type === "finance" ? "Finance" : item.type === "person" ? "Circle" : "Habit";
+    card.innerHTML =
+      "<div class=\"activity-feed-card-meta\">" + timeLabel + typeLabel + "</div>" +
+      "<div class=\"activity-feed-card-main\">" +
+      "<span class=\"activity-feed-card-label\">" + (escapeHtml(item.label) || "—") + "</span>" +
+      (item.detail ? "<span class=\"activity-feed-card-detail\">" + escapeHtml(item.detail) + "</span>" : "") +
+      "</div>";
+    listEl.appendChild(card);
+  });
+}
+
+function escapeHtml(s) {
+  if (s == null) return "";
+  var div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function setupActivityFeed() {
+  var sentinel = document.getElementById("feed-load-sentinel");
+  var skeleton = document.getElementById("activity-feed-skeleton");
+  if (!sentinel) return;
+  var io = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var total = getFeedItems(99999).length;
+        if (activityFeedLimit >= total) return;
+        if (skeleton) {
+          skeleton.classList.remove("hidden");
+          skeleton.setAttribute("aria-hidden", "false");
+        }
+        activityFeedLimit = Math.min(activityFeedLimit + FEED_PAGE_SIZE, total);
+        renderActivityFeed();
+        setTimeout(function () {
+          if (skeleton) {
+            skeleton.classList.add("hidden");
+            skeleton.setAttribute("aria-hidden", "true");
+          }
+        }, 300);
+      });
+    },
+    { root: null, rootMargin: "100px", threshold: 0 }
+  );
+  io.observe(sentinel);
 }
 
 function getMonogram(name) {
@@ -1750,6 +2649,12 @@ function renderSavingsBuckets() {
     });
     list.appendChild(div);
   });
+}
+
+function applyPrivacyBlur() {
+  if (typeof document === "undefined" || !document.body) return;
+  var on = !!(profile && (profile.privacyBlur || profile.hideFinancialNumbers));
+  document.body.classList.toggle("privacy-blur-on", on);
 }
 
 function setupProfile() {
@@ -1931,8 +2836,14 @@ function setupProfile() {
   var privacyBlur = $("profile-privacy-blur");
   if (privacyBlur) {
     privacyBlur.checked = !!(profile.privacyBlur || profile.hideFinancialNumbers);
-    privacyBlur.addEventListener("change", () => { profile.privacyBlur = privacyBlur.checked; profile.hideFinancialNumbers = privacyBlur.checked; saveProfile(profile); });
+    privacyBlur.addEventListener("change", () => {
+      profile.privacyBlur = privacyBlur.checked;
+      profile.hideFinancialNumbers = privacyBlur.checked;
+      saveProfile(profile);
+      applyPrivacyBlur();
+    });
   }
+  applyPrivacyBlur();
   var twoFaStatus = $("profile-2fa-status");
   if (twoFaStatus) twoFaStatus.textContent = profile.twoFactorEnabled ? "Enabled" : "Disabled";
   $("profile-2fa-configure")?.addEventListener("click", () => { if (typeof alert !== "undefined") alert("2FA configuration will be available in a future update."); });
@@ -1955,6 +2866,8 @@ function setupProfile() {
 }
 
 function init() {
+  if (window.__lifeflowInitDone) return;
+  window.__lifeflowInitDone = true;
   try {
     if (!storage) {
       showSaveError("Data cannot be saved. Use npx serve or turn off private browsing.");
@@ -1962,8 +2875,12 @@ function init() {
     try { setupColorPalette(); } catch (e) { console.error("setupColorPalette", e); }
     try { setupAvatar(); } catch (e) { console.error("setupAvatar", e); }
     try { setupTabs(); } catch (e) { console.error("setupTabs", e); }
+    try { setupFlowNav(); } catch (e) { console.error("setupFlowNav", e); }
+    try { setupQuickLog(); } catch (e) { console.error("setupQuickLog", e); }
+    try { setupNavMobile(); } catch (e) { console.error("setupNavMobile", e); }
     try { setupHabits(); } catch (e) { console.error("setupHabits", e); }
     try { setupDailySnapshot(); } catch (e) { console.error("setupDailySnapshot", e); }
+    try { initFocusSphere(); } catch (e) { console.error("initFocusSphere", e); }
     try { setupFinances(); } catch (e) { console.error("setupFinances", e); }
     try { setupAppointments(); } catch (e) { console.error("setupAppointments", e); }
     try { setupPeople(); } catch (e) { console.error("setupPeople", e); }
@@ -1975,14 +2892,11 @@ function init() {
     try { renderAppointments(); } catch (e) { console.error("renderAppointments", e); }
     try { renderPeople(); } catch (e) { console.error("renderPeople", e); }
     try { renderDashboard(); } catch (e) { console.error("renderDashboard", e); }
+    try { renderActivityFeed(); } catch (e) { console.error("renderActivityFeed", e); }
+    try { setupActivityFeed(); } catch (e) { console.error("setupActivityFeed", e); }
+    try { applyPrivacyBlur(); } catch (e) { console.error("applyPrivacyBlur", e); }
 
-    const dashboardAiBtn = $("dashboard-generate-insight-btn");
-    if (dashboardAiBtn) {
-      dashboardAiBtn.addEventListener("click", function () {
-        runAIGenerateInsight(dashboardAiBtn, function () {});
-      });
-    }
-  } catch (e) {
+    } catch (e) {
     console.error("init error", e);
   }
 }
