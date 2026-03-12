@@ -463,7 +463,7 @@ function setupNavMobile() {
 }
 
 function setupTabs() {
-  document.querySelectorAll(".nav-link, .nav-logo[data-tab], .gui-btn[data-tab], .gui-link[data-tab]").forEach((el) => {
+  document.querySelectorAll(".nav-link, .nav-logo[data-tab], .gui-btn[data-tab], .gui-link[data-tab], .gui-card-add").forEach((el) => {
     el.addEventListener("click", (e) => {
       e.preventDefault();
       if (el.dataset.tab) switchToTab(el.dataset.tab);
@@ -2391,16 +2391,8 @@ function renderDashboard() {
     if (state.savingsGoals.length === 0) {
       goalsListEl.classList.add("goals-preview-empty");
       const li = document.createElement("li");
-      li.innerHTML = `
-        <a href="#" class="dashboard-add-prompt" data-tab="finance" aria-label="Add goal">
-          <span class="dashboard-add-icon">+</span>
-          <span>ADD GOAL</span>
-        </a>
-      `;
-      li.querySelector(".dashboard-add-prompt").addEventListener("click", (e) => {
-        e.preventDefault();
-        switchToTab("finance");
-      });
+      li.className = "goals-preview-empty-item";
+      li.textContent = "No goals yet";
       goalsListEl.appendChild(li);
     } else {
       state.savingsGoals.forEach((g) => {
@@ -2426,16 +2418,8 @@ function renderDashboard() {
     if (state.debts.length === 0) {
       debtsListEl.classList.add("debt-list-empty");
       const li = document.createElement("li");
-      li.innerHTML = `
-        <a href="#" class="dashboard-add-prompt" data-tab="finance" aria-label="Add debt">
-          <span class="dashboard-add-icon">+</span>
-          <span>ADD DEBT</span>
-        </a>
-      `;
-      li.querySelector(".dashboard-add-prompt").addEventListener("click", (e) => {
-        e.preventDefault();
-        switchToTab("finance");
-      });
+      li.className = "debt-list-empty-item";
+      li.textContent = "No debts";
       debtsListEl.appendChild(li);
     } else {
       state.debts.forEach((d) => {
@@ -2473,16 +2457,8 @@ function renderDashboard() {
     } else {
       apptPreview.classList.add("appointments-preview-empty");
       const li = document.createElement("li");
-      li.innerHTML = `
-        <a href="#" class="dashboard-add-prompt" data-tab="appointments" aria-label="Add Appointment">
-          <span class="dashboard-add-icon">+</span>
-          <span>ADD APPOINTMENT</span>
-        </a>
-      `;
-      li.querySelector(".dashboard-add-prompt").addEventListener("click", (e) => {
-        e.preventDefault();
-        switchToTab("appointments");
-      });
+      li.className = "appointments-preview-empty-item";
+      li.textContent = "No upcoming appointments";
       apptPreview.appendChild(li);
     }
   }

@@ -37,7 +37,8 @@
           <p class="hero-subline">What do I need to do now?</p>
         </div>
 
-        <div class="focus-sphere-wrap" id="focus-sphere-wrap">
+        <div class="today-focus-row">
+          <div class="focus-sphere-wrap" id="focus-sphere-wrap">
           <div class="focus-sphere-card" id="focus-sphere-card">
             <div class="focus-sphere-view focus-sphere-idle" id="focus-view-idle">
               <div class="focus-sphere-circle focus-sphere-circle--idle" id="focus-sphere-idle">
@@ -108,10 +109,30 @@
             </div>
           </div>
         </div>
+          <div class="snapshot-card snapshot-energy snapshot-energy--today">
+            <div class="snapshot-card-header">ENERGY &amp; FOCUS</div>
+            <div class="snapshot-card-body">
+              <div class="energy-slider-wrap">
+                <span class="energy-label">1</span>
+                <input type="range" id="snapshot-energy-slider" class="energy-slider" min="1" max="5" value="3" />
+                <span class="energy-label">5</span>
+              </div>
+              <p class="energy-value" id="snapshot-energy-value">3</p>
+              <p class="energy-quote" id="snapshot-energy-quote" aria-live="polite"></p>
+              <div class="energy-trend-wrap">
+                <span class="energy-trend-label">Last 7 days</span>
+                <div class="energy-trend-chart" id="snapshot-energy-trend" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="dashboard-cards">
           <article class="gui-card gui-card-habits">
-            <div class="gui-card-header">HABIT TRACKER</div>
+            <div class="gui-card-header">
+              <span class="gui-card-header-title">HABIT TRACKER</span>
+              <button type="button" class="gui-card-add" data-tab="habits" aria-label="Add habit">+</button>
+            </div>
             <div class="gui-card-body">
               <ul class="habit-checklist" id="dashboard-habits-list"></ul>
               <div class="card-decoration card-floral" aria-hidden="true">
@@ -121,7 +142,9 @@
           </article>
 
           <article class="gui-card gui-card-finance">
-            <div class="gui-card-header">FINANCIAL &amp; DEBT MANAGEMENT</div>
+            <div class="gui-card-header">
+              <span class="gui-card-header-title">FINANCIAL &amp; DEBT MANAGEMENT</span>
+            </div>
             <div class="gui-card-body" data-privacy-blur>
               <p class="finance-total" id="dashboard-total-debt">Total Debt: <strong>$0</strong></p>
               <div class="finance-progress-wrap">
@@ -129,14 +152,18 @@
                 <div class="progress-bar"><span class="progress-fill" id="dashboard-debt-progress" style="width: 0%"></span></div>
               </div>
               <div class="finance-block">
-                <p class="finance-block-title">SAVINGS GOALS</p>
+                <div class="finance-block-head">
+                  <p class="finance-block-title">SAVINGS GOALS</p>
+                  <button type="button" class="gui-card-add finance-block-add" data-tab="finance" data-context="goal" aria-label="Add goal">+</button>
+                </div>
                 <ul class="goals-preview-list" id="dashboard-goals-list"></ul>
-                <button type="button" class="gui-btn gui-btn-outline" data-tab="finance">ADD NEW GOAL</button>
               </div>
               <div class="finance-block">
-                <p class="finance-block-title">TOTAL DEBTS</p>
+                <div class="finance-block-head">
+                  <p class="finance-block-title">TOTAL DEBTS</p>
+                  <button type="button" class="gui-card-add finance-block-add" data-tab="finance" data-context="debt" aria-label="Add debt">+</button>
+                </div>
                 <ul class="debt-list" id="dashboard-debts-list"></ul>
-                <button type="button" class="gui-btn gui-btn-outline" data-tab="finance">ADD NEW DEBT</button>
               </div>
               <div class="card-decoration card-money" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -145,16 +172,21 @@
           </article>
 
           <article class="gui-card gui-card-appointments">
-            <div class="gui-card-header">APPOINTMENTS</div>
+            <div class="gui-card-header">
+              <span class="gui-card-header-title">APPOINTMENTS</span>
+              <button type="button" class="gui-card-add" data-tab="appointments" aria-label="Add appointment">+</button>
+            </div>
             <div class="gui-card-body">
               <ul class="appointments-preview" id="dashboard-appointments-preview"></ul>
             </div>
           </article>
           <article class="gui-card gui-card-people">
-            <div class="gui-card-header">PEOPLE</div>
+            <div class="gui-card-header">
+              <span class="gui-card-header-title">PEOPLE</span>
+              <button type="button" class="gui-card-add" data-tab="people" aria-label="Add person">+</button>
+            </div>
             <div class="gui-card-body">
               <ul class="people-preview-list" id="dashboard-people-list"></ul>
-              <button type="button" class="gui-btn gui-btn-outline" data-tab="people">ADD PERSON</button>
             </div>
           </article>
         </div>
@@ -164,52 +196,6 @@
         <div class="section-inner daily-snapshot-wrap">
           <h2 class="page-title">Daily Snapshot</h2>
           <p class="snapshot-north-star" id="snapshot-north-star">You are 0% through your daily goals.</p>
-
-          <div class="snapshot-grid">
-            <div class="snapshot-card snapshot-energy">
-              <div class="snapshot-card-header">ENERGY &amp; FOCUS</div>
-              <div class="snapshot-card-body">
-                <div class="energy-slider-wrap">
-                  <span class="energy-label">1</span>
-                  <input type="range" id="snapshot-energy-slider" class="energy-slider" min="1" max="5" value="3" />
-                  <span class="energy-label">5</span>
-                </div>
-                <p class="energy-value" id="snapshot-energy-value">3</p>
-                <p class="energy-quote" id="snapshot-energy-quote" aria-live="polite"></p>
-                <div class="energy-trend-wrap">
-                  <span class="energy-trend-label">Last 7 days</span>
-                  <div class="energy-trend-chart" id="snapshot-energy-trend" aria-hidden="true"></div>
-                </div>
-              </div>
-            </div>
-            <div class="snapshot-card snapshot-deepwork">
-              <div class="snapshot-card-header">DEEP WORK</div>
-              <div class="snapshot-card-body">
-                <div class="deepwork-ring-wrap">
-                  <div class="deepwork-ring" id="snapshot-deepwork-ring">
-                    <svg viewBox="0 0 36 36" aria-hidden="true">
-                      <defs>
-                        <linearGradient id="deepwork-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stop-color="#b8c9a8" />
-                          <stop offset="100%" stop-color="#9caf88" />
-                        </linearGradient>
-                      </defs>
-                      <path class="deepwork-ring-bg" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
-                      <path class="deepwork-ring-fill" id="snapshot-deepwork-ring-fill" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" />
-                    </svg>
-                  </div>
-                  <div class="deepwork-values">
-                    <span class="deepwork-current" id="snapshot-deepwork-current">0</span>
-                    <span class="deepwork-sep">/</span>
-                    <span class="deepwork-target" id="snapshot-deepwork-target-display">2</span>
-                    <span class="deepwork-unit">hrs</span>
-                  </div>
-                </div>
-                <label class="snapshot-input-label">Hours today <input type="number" id="snapshot-deepwork-input" class="snapshot-input-num" min="0" max="24" step="0.5" placeholder="0" /></label>
-                <label class="snapshot-input-label snapshot-target-label">Target (hrs) <input type="number" id="snapshot-deepwork-target-input" class="snapshot-input-num" min="0.5" max="12" step="0.5" value="2" title="Edit your daily deep work target" /></label>
-              </div>
-            </div>
-          </div>
 
           <div class="snapshot-card habit-heatmap-card">
             <div class="snapshot-card-header habit-heatmap-card-header">
@@ -826,10 +812,6 @@
 
     <footer class="site-footer">
       <span class="footer-copy">© <span id="footer-year"></span> LIFEFLOW. Data stored on this device only — back up in Profile → Security.</span>
-      <div class="footer-links">
-        <a href="#">Contact</a>
-        <a href="#">Settings</a>
-      </div>
     </footer>
 
     <script>
